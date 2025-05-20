@@ -7,7 +7,7 @@ router.use('/user', userRouter);  // /api/user
 const adminRouter = require('./adminRoutes');
 router.use('/admin', adminRouter);  // /api/admin
 
-const theatreRouter = require('./theatreRoutes');
+const theatreRouter = require('./ownerRoutes');
 router.use('/theatre', theatreRouter);  // /api/theatre
 
 

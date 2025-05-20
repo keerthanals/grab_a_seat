@@ -1,32 +1,7 @@
 const Movie = require('../models/movieModel');
 const Theatre = require('../models/theatreModel');
 
-// Add Movie
-const addMovie = async (req, res) => {
-  try {
-    const { title, description, duration, genre, releaseDate,language } = req.body;
 
-    if (!title || !description || !duration) {
-      return res.status(400).json({ message: 'Title, description, and duration are required' });
-    }
-
-    const newMovie = new Movie({
-      title,
-      description,
-      duration,
-      genre,
-      releaseDate,
-      language
-    });
-
-    const savedMovie = await newMovie.save();
-    res.status(201).json({ message: 'Movie added successfully', movie: savedMovie });
-
-  } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: 'Server error' });
-  }
-};
 
 // Approve or Reject Theatre
 const approveRejectTheatre = async (req, res) => {
@@ -78,7 +53,6 @@ const getAllMovies = async (req, res) => {
 };
 
 module.exports = {
-  addMovie,
   approveRejectTheatre,
   getAllTheatres,
   getAllMovies,

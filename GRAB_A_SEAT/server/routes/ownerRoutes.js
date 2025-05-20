@@ -1,8 +1,21 @@
 const express = require('express');
 const router = express.Router();
-const ownerController = require('../controllers/ownerController');
 const authUser = require('../middlewares/authUser');
+const authAdmin = require('../middlewares/authAdmin');
 const authOwner = require('../middlewares/authOwner');
+const ownerController = require('../controllers/ownerController');
+
+
+// Add movie
+router.post('/movies', authOwner, ownerController.addMovie);
+
+
+// Owner creates theatre request
+router.post('/', authUser, authOwner, ownerController.createTheatre);
+
+
+// Owner fetches own theatres
+router.get('/my-theatres', authUser, authOwner, ownerController.getOwnerTheatres);
 
 // Create show (owner only)
 router.post('/shows', authUser, authOwner, ownerController.createShow);
