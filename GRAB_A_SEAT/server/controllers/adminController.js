@@ -4,7 +4,7 @@ const Theatre = require('../models/theatreModel');
 // Add Movie
 const addMovie = async (req, res) => {
   try {
-    const { title, description, duration, genre, releaseDate } = req.body;
+    const { title, description, duration, genre, releaseDate,language } = req.body;
 
     if (!title || !description || !duration) {
       return res.status(400).json({ message: 'Title, description, and duration are required' });
@@ -16,6 +16,7 @@ const addMovie = async (req, res) => {
       duration,
       genre,
       releaseDate,
+      language
     });
 
     const savedMovie = await newMovie.save();

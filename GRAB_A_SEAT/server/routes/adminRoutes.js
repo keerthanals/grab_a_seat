@@ -10,9 +10,9 @@ router.post('/movies', authAdmin, adminController.addMovie);
 router.patch('/theatres/:id', authAdmin, adminController.approveRejectTheatre);
 
 // Optional: Get all theatres (admin)
-router.get('/theatres', authAdmin, adminController.getAllTheatres);
+router.get('/theatre-list', authAdmin, adminController.getAllTheatres);
 
 // Optional: Get all movies (admin)
-router.get('/movies', authAdmin, adminController.getAllMovies);
+router.get('/movie-list', authAdmin, adminController.getAllMovies);
 
 module.exports = router;

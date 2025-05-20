@@ -8,8 +8,6 @@ const checkOwner = require('../middlewares/authOwner');
 // Owner creates theatre request
 router.post('/', authUser, checkOwner, theatreController.createTheatre);
 
-// Admin approves or rejects theatre
-router.patch('/approve/:id', authAdmin, theatreController.updateTheatreStatus);
 
 // Owner fetches own theatres
 router.get('/my-theatres', authUser, checkOwner, theatreController.getOwnerTheatres);
