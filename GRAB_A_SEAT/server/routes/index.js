@@ -10,6 +10,9 @@ router.use('/admin', adminRouter);  // /api/admin
 const theatreRouter = require('./ownerRoutes');
 router.use('/theatre', theatreRouter);  // /api/theatre
 
+const bookingRouter = require('./bookingRoutes');
+router.use('/booking', bookingRouter);  // /api/booking
+
 
 
 

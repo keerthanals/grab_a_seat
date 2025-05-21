@@ -68,7 +68,6 @@ const getOwnerTheatres = async (req, res) => {
   }
 };
 
-//create show
 const createShow = async (req, res) => {
   try {
     const ownerID = req.user._id;
@@ -77,6 +76,11 @@ const createShow = async (req, res) => {
     // Validate input
     if (!theatreID || !movieID || !screenNumber || !showTime || !totalSeats) {
       return res.status(400).json({ message: 'All fields are required' });
+    }
+
+    // Validate showTime format
+    if (isNaN(new Date(showTime).getTime())) {
+      return res.status(400).json({ message: 'Invalid show time format' });
     }
 
     // Check theatre ownership and approval
@@ -107,7 +111,7 @@ const createShow = async (req, res) => {
     res.status(201).json({ message: 'Show created successfully', show: savedShow });
 
   } catch (error) {
-    console.error(error);
+    console.error('Error creating show:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -116,5 +120,6 @@ module.exports = {
   createShow,
   createTheatre,
   getOwnerTheatres, 
-  addMovie
+  addMovie,
+  
 };

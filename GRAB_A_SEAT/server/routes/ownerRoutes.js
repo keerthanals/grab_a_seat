@@ -6,12 +6,12 @@ const authOwner = require('../middlewares/authOwner');
 const ownerController = require('../controllers/ownerController');
 
 
-// Add movie
-router.post('/movies', authOwner, ownerController.addMovie);
-
 
 // Owner creates theatre request
 router.post('/', authUser, authOwner, ownerController.createTheatre);
+
+// Add movie
+router.post('/movies', authOwner, ownerController.addMovie);
 
 
 // Owner fetches own theatres
