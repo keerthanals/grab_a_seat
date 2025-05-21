@@ -13,6 +13,9 @@ router.use('/theatre', theatreRouter);  // /api/theatre
 const bookingRouter = require('./bookingRoutes');
 router.use('/booking', bookingRouter);  // /api/booking
 
+const reviewRouter = require('./reviewRoutes');
+router.use('/review', reviewRouter);  // /api/review
+
 
 
 
