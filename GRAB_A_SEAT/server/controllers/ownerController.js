@@ -2,13 +2,13 @@ const Show = require('../models/showModel');
 const Theatre = require('../models/theatreModel');
 const Movie = require('../models/movieModel');
 
-// Add Movie
 const addMovie = async (req, res) => {
   try {
-    const { title, description, duration, genre, releaseDate,language } = req.body;
+    const { title, description, duration, genre, releaseDate, language } = req.body;
+    const poster = req.file ? req.file.path : null;
 
-    if (!title || !description || !duration) {
-      return res.status(400).json({ message: 'Title, description, and duration are required' });
+    if (!title || !description || !duration || !genre || !releaseDate || !language) {
+      return res.status(400).json({ message: 'All fields are required' });
     }
 
     const newMovie = new Movie({
@@ -17,7 +17,8 @@ const addMovie = async (req, res) => {
       duration,
       genre,
       releaseDate,
-      language
+      language,
+      poster,
     });
 
     const savedMovie = await newMovie.save();
@@ -28,6 +29,7 @@ const addMovie = async (req, res) => {
     res.status(500).json({ message: 'Server error' });
   }
 };
+
 
 // Create theatre (pending by default)
 const createTheatre = async (req, res) => {

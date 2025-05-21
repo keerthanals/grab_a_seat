@@ -4,14 +4,15 @@ const authUser = require('../middlewares/authUser');
 const authAdmin = require('../middlewares/authAdmin');
 const authOwner = require('../middlewares/authOwner');
 const ownerController = require('../controllers/ownerController');
+const upload = require('../middlewares/upload');
 
 
 
 // Owner creates theatre request
 router.post('/', authUser, authOwner, ownerController.createTheatre);
 
-// Add movie
-router.post('/movies', authOwner, ownerController.addMovie);
+// Updated for file upload [ add movie]
+router.post('/movies', authOwner, upload.single('poster'), ownerController.addMovie);
 
 
 // Owner fetches own theatres
