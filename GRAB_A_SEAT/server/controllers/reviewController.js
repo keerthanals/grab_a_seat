@@ -4,7 +4,8 @@ const Show = require('../models/showModel');
 const Theatre = require('../models/theatreModel');
 const Movie = require('../models/movieModel');
 
-// POST: Add review (only if user booked and show has passed)
+
+// POST: User - add a review for a movie
 const addReview = async (req, res) => {
   try {
     const userID = req.user._id;
@@ -15,14 +16,18 @@ const addReview = async (req, res) => {
       return res.status(400).json({ message: "Movie ID and rating are required" });
     }
 
-    // Find if the user has any past booking for this movie
-    const bookings = await Booking.find({ userID });
+    // Get all bookings of the user for this movie
+    const bookings = await Booking.find({ userID }).populate('showID');
 
     let hasWatched = false;
 
     for (const booking of bookings) {
-      const show = await Show.findById(booking.showID);
-      if (show && show.movieID.toString() === movieID && new Date(show.showTime) < new Date()) {
+      const show = booking.showID;
+      if (
+        show &&
+        show.movieID.toString() === movieID &&
+        new Date(show.showTime) < new Date()
+      ) {
         hasWatched = true;
         break;
       }
@@ -30,6 +35,12 @@ const addReview = async (req, res) => {
 
     if (!hasWatched) {
       return res.status(403).json({ message: "You can only review movies you’ve watched" });
+    }
+
+    // Optional: check if already reviewed
+    const existingReview = await Review.findOne({ userID, movieID });
+    if (existingReview) {
+      return res.status(409).json({ message: "You have already reviewed this movie" });
     }
 
     const review = new Review({
@@ -43,10 +54,11 @@ const addReview = async (req, res) => {
     res.status(201).json({ message: "Review submitted successfully", review });
 
   } catch (error) {
-    console.error(error);
+    console.error('Review error:', error);
     res.status(500).json({ message: "Server error" });
   }
 };
+
 
 // GET: Owner - view all reviews for a movie shown in their theatre
 const getMovieReviewsByOwner = async (req, res) => {
