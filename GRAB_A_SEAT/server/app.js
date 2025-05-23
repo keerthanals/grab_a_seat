@@ -15,9 +15,13 @@ app.get('/', (req, res) => {
 app.use(express.json());
 app.use('/api', router);
 app.use(cookieParser());
-
-connectDB();
-
-app.listen(port, () => {
-  console.log(`Example app listening on port ${port}`)
-})
+connectDB()
+  .then(() => {
+    app.listen(port, () => {
+      console.log(`🚀 Server running on port ${port}`);
+    });
+  })
+  .catch((err) => {
+    console.error('❌ Failed to connect to DB, server not started.');
+    process.exit(1); // ⬅️ Stop process completely if DB fails
+  });
