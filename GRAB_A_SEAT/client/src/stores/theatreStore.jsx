@@ -1,141 +1,7 @@
 import { create } from 'zustand';
+import { adminAPI, ownerAPI, publicAPI } from '../services/api';
 
-// Mock seat layout creation function
-const createSeatLayout = (rows, columns) => {
-  const seatMap = {};
-  
-  for (let row = 0; row < rows; row++) {
-    for (let col = 0; col < columns; col++) {
-      const seatId = `${String.fromCharCode(65 + row)}${col + 1}`;
-      
-      if ((row === 0 && col === 0) || (row === rows - 1 && col === columns - 1)) {
-        seatMap[seatId] = 'unavailable';
-      } else if (row >= rows - 2) {
-        seatMap[seatId] = 'premium';
-      } else {
-        seatMap[seatId] = 'regular';
-      }
-    }
-  }
-  
-  return {
-    rows,
-    columns,
-    seatMap,
-  };
-};
-
-// Mock data
-const mockTheatres = [
-  {
-    id: '1',
-    name: 'CineWorld',
-    location: '123 Main St, City',
-    ownerId: '2',
-    approved: true,
-    screens: [
-      {
-        id: '1',
-        name: 'Screen 1',
-        theatreId: '1',
-        seatLayout: createSeatLayout(10, 12),
-      },
-      {
-        id: '2',
-        name: 'Screen 2',
-        theatreId: '1',
-        seatLayout: createSeatLayout(8, 10),
-      },
-    ],
-  },
-  {
-    id: '2',
-    name: 'MoviePlex',
-    location: '456 Oak Ave, Town',
-    ownerId: '2',
-    approved: true,
-    screens: [
-      {
-        id: '3',
-        name: 'Screen 1',
-        theatreId: '2',
-        seatLayout: createSeatLayout(12, 16),
-      },
-    ],
-  },
-  {
-    id: '3',
-    name: 'FilmHouse',
-    location: '789 Pine Rd, Village',
-    ownerId: '2',
-    approved: false,
-    screens: [
-      {
-        id: '4',
-        name: 'Screen 1',
-        theatreId: '3',
-        seatLayout: createSeatLayout(6, 8),
-      },
-    ],
-  },
-];
-
-const mockShowtimes = [
-  {
-    id: '1',
-    movieId: '1',
-    screenId: '1',
-    theatreId: '1',
-    date: '2025-05-01',
-    startTime: '14:30',
-    endTime: '17:00',
-    price: {
-      regular: 12.99,
-      premium: 18.99,
-    },
-  },
-  {
-    id: '2',
-    movieId: '1',
-    screenId: '1',
-    theatreId: '1',
-    date: '2025-05-01',
-    startTime: '19:30',
-    endTime: '22:00',
-    price: {
-      regular: 14.99,
-      premium: 20.99,
-    },
-  },
-  {
-    id: '3',
-    movieId: '2',
-    screenId: '2',
-    theatreId: '1',
-    date: '2025-05-01',
-    startTime: '15:00',
-    endTime: '17:30',
-    price: {
-      regular: 12.99,
-      premium: 18.99,
-    },
-  },
-  {
-    id: '4',
-    movieId: '3',
-    screenId: '3',
-    theatreId: '2',
-    date: '2025-05-01',
-    startTime: '16:00',
-    endTime: '19:00',
-    price: {
-      regular: 13.99,
-      premium: 19.99,
-    },
-  },
-];
-
-export const useTheatreStore = create((set) => ({
+const useTheatreStore = create((set, get) => ({
   theatres: [],
   showtimes: [],
   isLoading: false,
@@ -145,11 +11,27 @@ export const useTheatreStore = create((set) => ({
     set({ isLoading: true, error: null });
     
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      set({ theatres: mockTheatres, isLoading: false });
+      const theatres = await publicAPI.getAllTheatres();
+      set({ theatres, isLoading: false });
     } catch (error) {
+      console.error('Failed to fetch theatres:', error);
       set({
-        error: error instanceof Error ? error.message : 'Failed to fetch theatres',
+        error: error.message || 'Failed to fetch theatres',
+        isLoading: false,
+      });
+    }
+  },
+  
+  fetchOwnerTheatres: async () => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      const theatres = await ownerAPI.getOwnerTheatres();
+      set({ theatres, isLoading: false });
+    } catch (error) {
+      console.error('Failed to fetch owner theatres:', error);
+      set({
+        error: error.message || 'Failed to fetch theatres',
         isLoading: false,
       });
     }
@@ -159,54 +41,82 @@ export const useTheatreStore = create((set) => ({
     set({ isLoading: true, error: null });
     
     try {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      set({ showtimes: mockShowtimes, isLoading: false });
+      // Note: You might need to add a public endpoint for showtimes
+      // For now, using admin endpoint
+      const showtimes = await adminAPI.getAllTheatres(); // Adjust this endpoint
+      set({ showtimes: showtimes.showtimes || [], isLoading: false });
     } catch (error) {
+      console.error('Failed to fetch showtimes:', error);
       set({
-        error: error instanceof Error ? error.message : 'Failed to fetch showtimes',
+        error: error.message || 'Failed to fetch showtimes',
         isLoading: false,
       });
     }
   },
   
-  approveTheatre: (id) => {
-    set((state) => ({
-      theatres: state.theatres.map((theatre) =>
-        theatre.id === id ? { ...theatre, approved: true } : theatre
-      ),
-    }));
-  },
-  
-  rejectTheatre: (id) => {
-    set((state) => ({
-      theatres: state.theatres.filter((theatre) => theatre.id !== id),
-    }));
-  },
-  
-  addTheatre: (theatreData) => {
-    set((state) => {
-      const newTheatre = {
-        id: Math.random().toString(36).substring(2, 9),
-        approved: false,
-        ...theatreData,
-      };
+  approveTheatre: async (id) => {
+    try {
+      await adminAPI.approveRejectTheatre(id, 'approve');
       
-      return {
+      set((state) => ({
+        theatres: state.theatres.map((theatre) =>
+          theatre.id === id ? { ...theatre, approved: true } : theatre
+        ),
+      }));
+    } catch (error) {
+      console.error('Failed to approve theatre:', error);
+      set({ error: error.message || 'Failed to approve theatre' });
+      throw error;
+    }
+  },
+  
+  rejectTheatre: async (id) => {
+    try {
+      await adminAPI.approveRejectTheatre(id, 'reject');
+      
+      set((state) => ({
+        theatres: state.theatres.filter((theatre) => theatre.id !== id),
+      }));
+    } catch (error) {
+      console.error('Failed to reject theatre:', error);
+      set({ error: error.message || 'Failed to reject theatre' });
+      throw error;
+    }
+  },
+  
+  addTheatre: async (theatreData) => {
+    try {
+      const newTheatre = await ownerAPI.createTheatre(theatreData);
+      
+      set((state) => ({
         theatres: [...state.theatres, newTheatre],
-      };
-    });
+      }));
+      
+      return newTheatre;
+    } catch (error) {
+      console.error('Failed to create theatre:', error);
+      set({ error: error.message || 'Failed to create theatre' });
+      throw error;
+    }
   },
   
-  addShowtime: (showtimeData) => {
-    set((state) => {
-      const newShowtime = {
-        id: Math.random().toString(36).substring(2, 9),
-        ...showtimeData,
-      };
+  addShowtime: async (showtimeData) => {
+    try {
+      const newShowtime = await ownerAPI.createShow(showtimeData);
       
-      return {
+      set((state) => ({
         showtimes: [...state.showtimes, newShowtime],
-      };
-    });
+      }));
+      
+      return newShowtime;
+    } catch (error) {
+      console.error('Failed to create showtime:', error);
+      set({ error: error.message || 'Failed to create showtime' });
+      throw error;
+    }
   },
+  
+  clearError: () => set({ error: null }),
 }));
+
+export { useTheatreStore };

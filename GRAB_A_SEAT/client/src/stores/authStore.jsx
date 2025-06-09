@@ -1,93 +1,118 @@
 import { create } from 'zustand';
-import axios from 'axios';
+import { authAPI } from '../services/api';
 
-// Optional: centralize base URL
-const API = axios.create({
-  baseURL: 'http://localhost:3001/api/user',
-});
-
-export const useAuthStore = create((set) => ({
+const useAuthStore = create((set, get) => ({
   user: null,
-  token: null,
   isAuthenticated: false,
-  error: null,
   isLoading: false,
-  isAuthLoaded: false,
-
-  register: async (name, email, password, role) => {
-    set({ isLoading: true, error: null });
-    try {
-      const res = await API.post('/register', { name, email, password, role });
-
-      const { user, token } = res.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        isAuthLoaded: true,
-      });
-
-      return true; // ✅ successful
-    } catch (err) {
-      const message = err.response?.data?.message || 'Registration failed';
-      set({ error: message, isLoading: false, isAuthLoaded: true });
-      return false; // ❌ failed
+  error: null,
+  
+  // Initialize auth state from localStorage
+  initializeAuth: () => {
+    const token = localStorage.getItem('authToken');
+    const userData = localStorage.getItem('userData');
+    
+    if (token && userData) {
+      try {
+        const user = JSON.parse(userData);
+        set({ user, isAuthenticated: true });
+      } catch (error) {
+        localStorage.removeItem('authToken');
+        localStorage.removeItem('userData');
+      }
     }
   },
-
+  
   login: async (email, password) => {
     set({ isLoading: true, error: null });
+    
     try {
-      const res = await API.post('/login', { email, password });
-
-      const { user, token } = res.data;
-      localStorage.setItem('token', token);
-      localStorage.setItem('user', JSON.stringify(user));
-
-      set({
-        user,
-        token,
-        isAuthenticated: true,
-        isLoading: false,
-        isAuthLoaded: true,
+      const response = await authAPI.login({ email, password });
+      
+      // Store token and user data
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userData', JSON.stringify(response.user));
+      
+      set({ 
+        user: response.user, 
+        isAuthenticated: true, 
+        isLoading: false 
       });
-
-      return true; // ✅ successful
-    } catch (err) {
-      const message = err.response?.data?.message || 'Login failed';
-      set({ error: message, isLoading: false, isAuthLoaded: true });
-      return false; // ❌ failed
+      
+      return response;
+    } catch (error) {
+      set({ 
+        error: error.message || 'Login failed', 
+        isLoading: false 
+      });
+      throw error;
     }
   },
-
-  logout: () => {
-    localStorage.removeItem('token');
-    localStorage.removeItem('user');
-    set({
-      user: null,
-      token: null,
-      isAuthenticated: false,
-      isAuthLoaded: true,
-    });
-  },
-
-  loadUserFromStorage: () => {
-    const token = localStorage.getItem('token');
-    const user = localStorage.getItem('user');
-
-    if (token && user) {
-      set({
-        token,
-        user: JSON.parse(user),
-        isAuthenticated: true,
-        isAuthLoaded: true,
+  
+  register: async (name, email, password) => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      const response = await authAPI.register({ name, email, password });
+      
+      // Store token and user data
+      localStorage.setItem('authToken', response.token);
+      localStorage.setItem('userData', JSON.stringify(response.user));
+      
+      set({ 
+        user: response.user, 
+        isAuthenticated: true, 
+        isLoading: false 
       });
-    } else {
-      set({ isAuthLoaded: true });
+      
+      return response;
+    } catch (error) {
+      set({ 
+        error: error.message || 'Registration failed', 
+        isLoading: false 
+      });
+      throw error;
     }
   },
+  
+  logout: async () => {
+    try {
+      await authAPI.logout();
+    } catch (error) {
+      console.error('Logout error:', error);
+    } finally {
+      // Clear local storage and state
+      localStorage.removeItem('authToken');
+      localStorage.removeItem('userData');
+      set({ user: null, isAuthenticated: false, error: null });
+    }
+  },
+  
+  updateProfile: async (userData) => {
+    set({ isLoading: true, error: null });
+    
+    try {
+      const response = await authAPI.updateProfile(userData);
+      
+      // Update stored user data
+      localStorage.setItem('userData', JSON.stringify(response.user));
+      
+      set({ 
+        user: response.user, 
+        isLoading: false 
+      });
+      
+      return response;
+    } catch (error) {
+      set({ 
+        error: error.message || 'Profile update failed', 
+        isLoading: false 
+      });
+      throw error;
+    }
+  },
+  
+  clearError: () => set({ error: null }),
 }));
+
+export { useAuthStore };

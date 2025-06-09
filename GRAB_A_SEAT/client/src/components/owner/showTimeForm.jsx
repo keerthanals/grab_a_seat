@@ -4,51 +4,52 @@ import { Calendar, Clock, DollarSign } from 'lucide-react';
 import { useMovieStore } from '../../stores/movieStore';
 import { useTheatreStore } from '../../stores/theatreStore';
 import { useAuthStore } from '../../stores/authStore';
+import { ownerAPI } from '../../services/api';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
 import Select from '../ui/Select';
 import { Card, CardContent, CardHeader, CardTitle } from '../ui/Card';
+import { toast } from 'sonner';
 
 const ShowtimeForm = () => {
   const { movies, fetchMovies } = useMovieStore();
-  const { theatres, fetchTheatres, addShowtime } = useTheatreStore();
+  const { theatres, fetchOwnerTheatres } = useTheatreStore();
   const { user } = useAuthStore();
   const [screens, setScreens] = useState([]);
-
+  
   const {
     register,
     handleSubmit,
     watch,
     setValue,
     formState: { errors, isSubmitting },
-    reset
+    reset,
   } = useForm({
     defaultValues: {
       date: new Date().toISOString().split('T')[0],
       startTime: '18:00',
       priceRegular: 12.99,
-      pricePremium: 18.99
-    }
+      pricePremium: 18.99,
+    },
   });
-
+  
   const selectedTheatreId = watch('theatreId');
-
+  
   useEffect(() => {
     fetchMovies();
-    fetchTheatres();
-  }, [fetchMovies, fetchTheatres]);
-
+    fetchOwnerTheatres();
+  }, [fetchMovies, fetchOwnerTheatres]);
+  
   useEffect(() => {
     if (selectedTheatreId) {
-      const theatre = theatres.find(t => t.id === selectedTheatreId);
+      const theatre = theatres.find((t) => t.id === selectedTheatreId);
       if (theatre) {
-        const screenOptions = theatre.screens.map(screen => ({
+        const screenOptions = theatre.screens.map((screen) => ({
           value: screen.id,
-          label: screen.name
+          label: screen.name,
         }));
+        
         setScreens(screenOptions);
-
-        // Reset screenId if the current one is not valid for the selected theatre
         setValue('screenId', screenOptions[0]?.value || '');
       }
     } else {
@@ -56,49 +57,44 @@ const ShowtimeForm = () => {
       setValue('screenId', '');
     }
   }, [selectedTheatreId, theatres, setValue]);
-
-  const ownerTheatres = theatres.filter(theatre => theatre.ownerId === user?.id && theatre.approved);
-
-  const theatreOptions = ownerTheatres.map(theatre => ({
+  
+  const ownerTheatres = theatres.filter(
+    (theatre) => theatre.ownerId === user?.id && theatre.approved
+  );
+  
+  const theatreOptions = ownerTheatres.map((theatre) => ({
     value: theatre.id,
-    label: theatre.name
+    label: theatre.name,
   }));
-
-  const movieOptions = movies.map(movie => ({
+  
+  const movieOptions = movies.map((movie) => ({
     value: movie.id,
-    label: movie.title
+    label: movie.title,
   }));
-
-  const calculateEndTime = (startTime, durationMinutes) => {
-    const [hours, minutes] = startTime.split(':').map(Number);
-    const startDate = new Date();
-    startDate.setHours(hours, minutes, 0, 0);
-    const endDate = new Date(startDate.getTime() + durationMinutes * 60000);
-    return `${String(endDate.getHours()).padStart(2, '0')}:${String(endDate.getMinutes()).padStart(2, '0')}`;
+  
+  const onSubmit = async (data) => {
+    try {
+      const showData = {
+        movieId: data.movieId,
+        theatreId: data.theatreId,
+        screenId: data.screenId,
+        date: data.date,
+        startTime: data.startTime,
+        price: {
+          regular: data.priceRegular,
+          premium: data.pricePremium,
+        },
+      };
+      
+      await ownerAPI.createShow(showData);
+      
+      toast.success('Showtime created successfully!');
+      reset();
+    } catch (error) {
+      toast.error(error.message || 'Failed to create showtime');
+    }
   };
-
-  const onSubmit = data => {
-    const movie = movies.find(m => m.id === data.movieId);
-    if (!movie) return;
-
-    const endTime = calculateEndTime(data.startTime, movie.duration);
-
-    addShowtime({
-      movieId: data.movieId,
-      theatreId: data.theatreId,
-      screenId: data.screenId,
-      date: data.date,
-      startTime: data.startTime,
-      endTime,
-      price: {
-        regular: data.priceRegular,
-        premium: data.pricePremium
-      }
-    });
-
-    reset();
-  };
-
+  
   return (
     <Card>
       <CardHeader>
@@ -112,20 +108,24 @@ const ShowtimeForm = () => {
               label="Select Movie"
               options={movieOptions}
               error={errors.movieId?.message}
-              {...register('movieId', { required: 'Movie is required' })}
+              {...register('movieId', {
+                required: 'Movie is required',
+              })}
             />
           </div>
-
+          
           <div>
             <Select
               id="theatreId"
               label="Select Theatre"
               options={theatreOptions}
               error={errors.theatreId?.message}
-              {...register('theatreId', { required: 'Theatre is required' })}
+              {...register('theatreId', {
+                required: 'Theatre is required',
+              })}
             />
           </div>
-
+          
           <div>
             <Select
               id="screenId"
@@ -133,10 +133,12 @@ const ShowtimeForm = () => {
               options={screens}
               error={errors.screenId?.message}
               disabled={!selectedTheatreId}
-              {...register('screenId', { required: 'Screen is required' })}
+              {...register('screenId', {
+                required: 'Screen is required',
+              })}
             />
           </div>
-
+          
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               id="date"
@@ -144,19 +146,23 @@ const ShowtimeForm = () => {
               label="Show Date"
               leftIcon={<Calendar size={16} />}
               error={errors.date?.message}
-              {...register('date', { required: 'Date is required' })}
+              {...register('date', {
+                required: 'Date is required',
+              })}
             />
-
+            
             <Input
               id="startTime"
               type="time"
               label="Start Time"
               leftIcon={<Clock size={16} />}
               error={errors.startTime?.message}
-              {...register('startTime', { required: 'Start time is required' })}
+              {...register('startTime', {
+                required: 'Start time is required',
+              })}
             />
           </div>
-
+          
           <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
             <Input
               id="priceRegular"
@@ -167,11 +173,14 @@ const ShowtimeForm = () => {
               error={errors.priceRegular?.message}
               {...register('priceRegular', {
                 required: 'Regular price is required',
-                min: { value: 1, message: 'Price must be positive' },
-                valueAsNumber: true
+                min: {
+                  value: 1,
+                  message: 'Price must be positive',
+                },
+                valueAsNumber: true,
               })}
             />
-
+            
             <Input
               id="pricePremium"
               type="number"
@@ -181,14 +190,21 @@ const ShowtimeForm = () => {
               error={errors.pricePremium?.message}
               {...register('pricePremium', {
                 required: 'Premium price is required',
-                min: { value: 1, message: 'Price must be positive' },
-                valueAsNumber: true
+                min: {
+                  value: 1,
+                  message: 'Price must be positive',
+                },
+                valueAsNumber: true,
               })}
             />
           </div>
-
+          
           <div className="pt-2">
-            <Button type="submit" className="w-full" isLoading={isSubmitting}>
+            <Button
+              type="submit"
+              className="w-full"
+              isLoading={isSubmitting}
+            >
               Add Showtime
             </Button>
           </div>

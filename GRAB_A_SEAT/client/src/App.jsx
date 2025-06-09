@@ -21,41 +21,57 @@ import OwnerDashboardPage from './pages/owner/OwnerDashboardPage';
 
 import useDarkMode from './hooks/useDarkMode';
 
-const ProtectedRoute = ({ element, allowedRoles }) => {
-  const { isAuthenticated, user, isAuthLoaded } = useAuthStore();
+// ❌ REMOVE THIS LINE
+// import { BrowserRouter } from "react-router-dom";
 
-  if (!isAuthLoaded) {
-    return <div className="flex min-h-screen items-center justify-center text-white">Loading...</div>;
-  }
+// ✅ Protected route component
+const ProtectedRoute = ({ element, allowedRoles }) => {
+  const { isAuthenticated, user } = useAuthStore();
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
 
-  if (allowedRoles && !allowedRoles.includes(user?.role)) {
+  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
     return <Navigate to="/" replace />;
   }
 
   return element;
 };
 
-function App() {
-  const [darkMode] = useDarkMode();
-  const { loadUserFromStorage, isAuthLoaded } = useAuthStore();
+// ✅ Role-based route component
+const RoleBasedRoute = ({ element, userRole, adminElement, ownerElement }) => {
+  const { isAuthenticated, user } = useAuthStore();
 
-  useEffect(() => {
-    loadUserFromStorage();
-  }, []);
-
-  if (!isAuthLoaded) {
-    return <div className="flex min-h-screen items-center justify-center text-white">Loading...</div>;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace />;
   }
 
+  switch (user?.role) {
+    case 'admin':
+      return adminElement || <Navigate to="/admin" replace />;
+    case 'owner':
+      return ownerElement || <Navigate to="/owner" replace />;
+    case 'user':
+      return element || <Navigate to="/" replace />;
+    default:
+      return <Navigate to="/" replace />;
+  }
+};
+
+function App() {
+  const { initializeAuth } = useAuthStore();
+
+  useEffect(() => {
+    initializeAuth();
+  }, [initializeAuth]);
+
   return (
-    <div className={`flex min-h-screen flex-col ${darkMode ? 'dark' : ''}`}>
+    <div className="flex min-h-screen flex-col">
       <Navbar />
       <main className="flex-1">
         <Routes>
+          {/* Public Routes */}
           <Route path="/" element={<HomePage />} />
           <Route path="/movies" element={<MoviesPage />} />
           <Route path="/movies/:id" element={<MovieDetailPage />} />
@@ -63,11 +79,62 @@ function App() {
           <Route path="/theatres/:id" element={<TheatreDetailPage />} />
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
-          <Route path="/booking/:id" element={<ProtectedRoute element={<BookingPage />} />} />
-          <Route path="/booking/confirmation" element={<ProtectedRoute element={<BookingConfirmationPage />} />} />
-          <Route path="/bookings" element={<ProtectedRoute element={<BookingsPage />} />} />
-          <Route path="/admin" element={<ProtectedRoute element={<AdminDashboardPage />} allowedRoles={['admin']} />} />
-          <Route path="/owner" element={<ProtectedRoute element={<OwnerDashboardPage />} allowedRoles={['owner']} />} />
+
+          {/* User Routes */}
+          <Route 
+            path="/booking/:id" 
+            element={
+              <RoleBasedRoute 
+                element={<BookingPage />}
+                adminElement={<Navigate to="/admin" replace />}
+                ownerElement={<Navigate to="/owner" replace />}
+              />
+            } 
+          />
+          <Route 
+            path="/booking/confirmation" 
+            element={
+              <RoleBasedRoute 
+                element={<BookingConfirmationPage />}
+                adminElement={<Navigate to="/admin" replace />}
+                ownerElement={<Navigate to="/owner" replace />}
+              />
+            } 
+          />
+          <Route 
+            path="/bookings" 
+            element={
+              <RoleBasedRoute 
+                element={<BookingsPage />}
+                adminElement={<Navigate to="/admin" replace />}
+                ownerElement={<Navigate to="/owner" replace />}
+              />
+            } 
+          />
+
+          {/* Admin */}
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute 
+                element={<AdminDashboardPage />} 
+                allowedRoles={['admin']}
+              />
+            }
+          />
+
+          {/* Owner */}
+          <Route
+            path="/owner"
+            element={
+              <ProtectedRoute 
+                element={<OwnerDashboardPage />} 
+                allowedRoles={['owner']}
+              />
+            }
+          />
+
+          {/* Fallback */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>
