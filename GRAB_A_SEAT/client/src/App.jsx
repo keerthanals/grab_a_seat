@@ -1,5 +1,9 @@
 import React, { useEffect } from 'react';
-import { Routes, Route, Navigate } from 'react-router-dom';
+import {
+  Routes,
+  Route,
+  Navigate,
+} from 'react-router-dom';
 import { useAuthStore } from './stores/authStore';
 
 import Navbar from './components/layout/Navbar';
@@ -19,33 +23,24 @@ import RegisterPage from './pages/RegisterPage';
 import AdminDashboardPage from './pages/admin/AdminDashboardPage';
 import OwnerDashboardPage from './pages/owner/OwnerDashboardPage';
 
-import useDarkMode from './hooks/useDarkMode';
-
-// ❌ REMOVE THIS LINE
-// import { BrowserRouter } from "react-router-dom";
-
-// ✅ Protected route component
+// Protected route component
 const ProtectedRoute = ({ element, allowedRoles }) => {
   const { isAuthenticated, user } = useAuthStore();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
-  if (allowedRoles && user && !allowedRoles.includes(user.role)) {
+  if (allowedRoles && !allowedRoles.includes(user?.role)) {
     return <Navigate to="/" replace />;
   }
 
   return element;
 };
 
-// ✅ Role-based route component
-const RoleBasedRoute = ({ element, userRole, adminElement, ownerElement }) => {
+// Role-based route component
+const RoleBasedRoute = ({ element, adminElement, ownerElement }) => {
   const { isAuthenticated, user } = useAuthStore();
 
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace />;
-  }
+  if (!isAuthenticated) return <Navigate to="/login" replace />;
 
   switch (user?.role) {
     case 'admin':
@@ -60,11 +55,20 @@ const RoleBasedRoute = ({ element, userRole, adminElement, ownerElement }) => {
 };
 
 function App() {
-  const { initializeAuth } = useAuthStore();
+  const {
+    initializeAuth,
+    isInitialized,
+    isAuthenticated,
+    user,
+  } = useAuthStore();
 
   useEffect(() => {
     initializeAuth();
-  }, [initializeAuth]);
+  }, []);
+
+  if (!isInitialized) {
+    return <div className="text-center mt-10">Loading...</div>;
+  }
 
   return (
     <div className="flex min-h-screen flex-col">
@@ -77,64 +81,80 @@ function App() {
           <Route path="/movies/:id" element={<MovieDetailPage />} />
           <Route path="/theatres" element={<TheatresPage />} />
           <Route path="/theatres/:id" element={<TheatreDetailPage />} />
-          <Route path="/login" element={<LoginPage />} />
+
+          <Route
+            path="/login"
+            element={
+              isAuthenticated ? (
+                user?.role === 'admin' ? (
+                  <Navigate to="/admin" replace />
+                ) : user?.role === 'owner' ? (
+                  <Navigate to="/owner" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              ) : (
+                <LoginPage />
+              )
+            }
+          />
           <Route path="/register" element={<RegisterPage />} />
 
-          {/* User Routes */}
-          <Route 
-            path="/booking/:id" 
+          {/* Booking routes for user only */}
+          <Route
+            path="/booking/:id"
             element={
-              <RoleBasedRoute 
+              <RoleBasedRoute
                 element={<BookingPage />}
                 adminElement={<Navigate to="/admin" replace />}
                 ownerElement={<Navigate to="/owner" replace />}
               />
-            } 
+            }
           />
-          <Route 
-            path="/booking/confirmation" 
+          <Route
+            path="/booking/confirmation"
             element={
-              <RoleBasedRoute 
+              <RoleBasedRoute
                 element={<BookingConfirmationPage />}
                 adminElement={<Navigate to="/admin" replace />}
                 ownerElement={<Navigate to="/owner" replace />}
               />
-            } 
+            }
           />
-          <Route 
-            path="/bookings" 
+          <Route
+            path="/bookings"
             element={
-              <RoleBasedRoute 
+              <RoleBasedRoute
                 element={<BookingsPage />}
                 adminElement={<Navigate to="/admin" replace />}
                 ownerElement={<Navigate to="/owner" replace />}
               />
-            } 
+            }
           />
 
-          {/* Admin */}
+          {/* Admin Route */}
           <Route
             path="/admin"
             element={
-              <ProtectedRoute 
-                element={<AdminDashboardPage />} 
+              <ProtectedRoute
+                element={<AdminDashboardPage />}
                 allowedRoles={['admin']}
               />
             }
           />
 
-          {/* Owner */}
+          {/* Owner Route */}
           <Route
             path="/owner"
             element={
-              <ProtectedRoute 
-                element={<OwnerDashboardPage />} 
+              <ProtectedRoute
+                element={<OwnerDashboardPage />}
                 allowedRoles={['owner']}
               />
             }
           />
 
-          {/* Fallback */}
+          {/* Catch-all */}
           <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </main>

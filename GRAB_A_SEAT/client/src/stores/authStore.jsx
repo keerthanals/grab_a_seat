@@ -5,13 +5,13 @@ const useAuthStore = create((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
+  isInitialized: false, // <- NEW
   error: null,
-  
-  // Initialize auth state from localStorage
+
   initializeAuth: () => {
     const token = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
-    
+
     if (token && userData) {
       try {
         const user = JSON.parse(userData);
@@ -21,6 +21,7 @@ const useAuthStore = create((set, get) => ({
         localStorage.removeItem('userData');
       }
     }
+    set({ isInitialized: true }); // <- FINISH INITIALIZATION
   },
   
   login: async (email, password) => {
@@ -49,11 +50,11 @@ const useAuthStore = create((set, get) => ({
     }
   },
   
-  register: async (name, email, password) => {
+  register: async (name, email, password, role = 'user') => {
     set({ isLoading: true, error: null });
     
     try {
-      const response = await authAPI.register({ name, email, password });
+      const response = await authAPI.register({ name, email, password, role });
       
       // Store token and user data
       localStorage.setItem('authToken', response.token);

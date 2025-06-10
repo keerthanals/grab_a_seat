@@ -5,39 +5,43 @@ import { Mail, Lock } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import Button from '../ui/Button';
 import Input from '../ui/Input';
-import {
-  Card,
-  CardContent,
-  CardHeader,
-  CardTitle,
-  CardDescription,
-  CardFooter,
-} from '../ui/Card';
+import { Card, CardContent, CardHeader, CardTitle, CardDescription, CardFooter } from '../ui/Card';
 
 const LoginForm = () => {
   const { login, error, isLoading } = useAuthStore();
   const navigate = useNavigate();
-
+  
   const {
     register,
     handleSubmit,
     formState: { errors },
   } = useForm();
-
+  
   const onSubmit = async (data) => {
-    const success = await login(data.email, data.password);
-    if (success) {
-      navigate('/');
+    try {
+      const response = await login(data.email, data.password);
+      
+      // Redirect based on user role
+      if (response.user.role === 'admin') {
+        navigate('/admin');
+      } else if (response.user.role === 'owner') {
+        navigate('/owner');
+      } else {
+        navigate('/');
+      }
+    } catch (error) {
+      console.error('Login failed:', error);
     }
   };
-
+  
   return (
     <Card className="mx-auto max-w-md">
       <CardHeader>
         <CardTitle>Sign In</CardTitle>
-        <CardDescription>Enter your credentials to access your account</CardDescription>
+        <CardDescription>
+          Enter your credentials to access your account
+        </CardDescription>
       </CardHeader>
-
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
           <div>
@@ -47,7 +51,6 @@ const LoginForm = () => {
               label="Email"
               leftIcon={<Mail size={16} />}
               error={errors.email?.message}
-              placeholder="you@example.com"
               {...register('email', {
                 required: 'Email is required',
                 pattern: {
@@ -55,9 +58,10 @@ const LoginForm = () => {
                   message: 'Invalid email address',
                 },
               })}
+              placeholder="you@example.com"
             />
           </div>
-
+          
           <div>
             <Input
               id="password"
@@ -65,7 +69,6 @@ const LoginForm = () => {
               label="Password"
               leftIcon={<Lock size={16} />}
               error={errors.password?.message}
-              placeholder="••••••••"
               {...register('password', {
                 required: 'Password is required',
                 minLength: {
@@ -73,23 +76,29 @@ const LoginForm = () => {
                   message: 'Password must be at least 6 characters',
                 },
               })}
+              placeholder="••••••••"
             />
           </div>
-
+          
           {error && (
-            <div className="rounded-md bg-red-100 dark:bg-red-900 p-3 text-sm text-red-700 dark:text-red-300">
+            <div className="rounded-md bg-danger-50 p-3 text-sm text-danger-500 dark:bg-danger-950 dark:text-danger-400">
               {error}
             </div>
           )}
-
+          
           <div>
-            <Button type="submit" className="w-full" isLoading={isLoading}>
+            <Button
+              type="submit"
+              className="w-full"
+              isLoading={isLoading}
+            >
               Sign In
             </Button>
           </div>
+          
+          
         </form>
       </CardContent>
-
       <CardFooter>
         <p className="text-center text-sm text-slate-600 dark:text-slate-400">
           Don't have an account?{' '}

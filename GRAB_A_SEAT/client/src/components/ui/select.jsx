@@ -26,9 +26,9 @@ const Select = forwardRef(({ className, label, options, error, onChange, ...prop
         onChange={handleChange}
         {...props}
       >
-        {options.map(({ value, label }) => (
-          <option key={value} value={value}>
-            {label}
+        {options.map((option) => (
+          <option key={option.value} value={option.value}>
+            {option.label}
           </option>
         ))}
       </select>

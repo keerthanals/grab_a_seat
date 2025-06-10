@@ -11,9 +11,9 @@ const useBookingStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // This would be user's bookings - you might need to add this endpoint
-      // For now, using admin endpoint to get all bookings
-      const bookings = await adminAPI.getAllBookings();
+      // Get all bookings for admin view or user's bookings
+      const response = await adminAPI.getAllBookings();
+      const bookings = response.bookings || response || [];
       set({ bookings, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch bookings:', error);
@@ -28,7 +28,8 @@ const useBookingStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const bookings = await ownerAPI.getOwnerBookings();
+      const response = await ownerAPI.getOwnerBookings();
+      const bookings = response.bookings || response || [];
       set({ bookings, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch owner bookings:', error);
@@ -41,7 +42,8 @@ const useBookingStore = create((set, get) => ({
   
   createBooking: async (bookingData) => {
     try {
-      const newBooking = await bookingAPI.createBooking(bookingData);
+      const response = await bookingAPI.createBooking(bookingData);
+      const newBooking = response.booking || response;
       
       set((state) => ({
         bookings: [...state.bookings, newBooking],

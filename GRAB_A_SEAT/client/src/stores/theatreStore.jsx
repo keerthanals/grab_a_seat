@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { adminAPI, ownerAPI, publicAPI } from '../services/api';
+import { adminAPI, ownerAPI } from '../services/api';
 
 const useTheatreStore = create((set, get) => ({
   theatres: [],
@@ -11,7 +11,8 @@ const useTheatreStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const theatres = await publicAPI.getAllTheatres();
+      const response = await adminAPI.getAllTheatres();
+      const theatres = response.theatres || response || [];
       set({ theatres, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch theatres:', error);
@@ -26,7 +27,8 @@ const useTheatreStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const theatres = await ownerAPI.getOwnerTheatres();
+      const response = await ownerAPI.getOwnerTheatres();
+      const theatres = response.theatres || response || [];
       set({ theatres, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch owner theatres:', error);
@@ -41,10 +43,20 @@ const useTheatreStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      // Note: You might need to add a public endpoint for showtimes
-      // For now, using admin endpoint
-      const showtimes = await adminAPI.getAllTheatres(); // Adjust this endpoint
-      set({ showtimes: showtimes.showtimes || [], isLoading: false });
+      // Get all theatres which should include showtimes
+      const response = await adminAPI.getAllTheatres();
+      
+      // Extract showtimes from theatres data
+      let allShowtimes = [];
+      const theatres = response.theatres || response || [];
+      
+      theatres.forEach(theatre => {
+        if (theatre.showtimes && Array.isArray(theatre.showtimes)) {
+          allShowtimes = [...allShowtimes, ...theatre.showtimes];
+        }
+      });
+      
+      set({ showtimes: allShowtimes, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch showtimes:', error);
       set({
@@ -86,7 +98,8 @@ const useTheatreStore = create((set, get) => ({
   
   addTheatre: async (theatreData) => {
     try {
-      const newTheatre = await ownerAPI.createTheatre(theatreData);
+      const response = await ownerAPI.createTheatre(theatreData);
+      const newTheatre = response.theatre || response;
       
       set((state) => ({
         theatres: [...state.theatres, newTheatre],
@@ -102,7 +115,8 @@ const useTheatreStore = create((set, get) => ({
   
   addShowtime: async (showtimeData) => {
     try {
-      const newShowtime = await ownerAPI.createShow(showtimeData);
+      const response = await ownerAPI.createShow(showtimeData);
+      const newShowtime = response.showtime || response;
       
       set((state) => ({
         showtimes: [...state.showtimes, newShowtime],

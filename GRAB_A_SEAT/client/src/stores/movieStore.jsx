@@ -1,5 +1,5 @@
 import { create } from 'zustand';
-import { reviewAPI, publicAPI, adminAPI } from '../services/api';
+import { reviewAPI, adminAPI } from '../services/api';
 
 const useMovieStore = create((set, get) => ({
   movies: [],
@@ -11,7 +11,9 @@ const useMovieStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const movies = await publicAPI.getAllMovies();
+      // Use admin endpoint to get all movies (including owner-added ones)
+      const response = await adminAPI.getAllMovies();
+      const movies = response.movies || response || [];
       set({ movies, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch movies:', error);
@@ -26,7 +28,8 @@ const useMovieStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const reviews = await reviewAPI.getAllReviewsByAdmin(movieId);
+      const response = await reviewAPI.getAllReviewsByAdmin(movieId);
+      const reviews = response.reviews || response || [];
       set({ reviews, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
@@ -39,7 +42,8 @@ const useMovieStore = create((set, get) => ({
   
   addReview: async (reviewData) => {
     try {
-      const newReview = await reviewAPI.addReview(reviewData);
+      const response = await reviewAPI.addReview(reviewData);
+      const newReview = response.review || response;
       
       set((state) => ({
         reviews: [...state.reviews, newReview],
@@ -72,7 +76,8 @@ const useMovieStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const reviews = await reviewAPI.getMovieReviewsByOwner(movieId);
+      const response = await reviewAPI.getMovieReviewsByOwner(movieId);
+      const reviews = response.reviews || response || [];
       set({ reviews, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch owner reviews:', error);
@@ -88,7 +93,8 @@ const useMovieStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
-      const reviews = await reviewAPI.getAllReviewsByAdmin(movieId);
+      const response = await reviewAPI.getAllReviewsByAdmin(movieId);
+      const reviews = response.reviews || response || [];
       set({ reviews, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch admin reviews:', error);
