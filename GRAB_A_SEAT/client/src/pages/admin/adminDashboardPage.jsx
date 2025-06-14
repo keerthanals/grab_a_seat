@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Film, Users, TicketCheck } from 'lucide-react';
+import { Building2, Film, Users, TicketCheck, UserCheck } from 'lucide-react';
 import { useAuthStore } from '../../stores/authStore';
 import { useTheatreStore } from '../../stores/theatreStore';
 import { useBookingStore } from '../../stores/bookingStore';
@@ -8,6 +8,7 @@ import { useMovieStore } from '../../stores/movieStore';
 import { Card, CardContent } from '../../components/ui/Card';
 import TheatreApprovalCard from '../../components/admin/TheatreApprovalCard';
 import BookingDetailsTable from '../../components/admin/BookingDetailsTable';
+import AdminApprovalCard from '../../components/admin/AdminApprovalCard';
 import Loader from '../../components/ui/Loader';
 import Button from '../../components/ui/Button';
 
@@ -35,6 +36,8 @@ const AdminDashboardPage = () => {
   const { bookings, isLoading: isBookingLoading, fetchBookings } = useBookingStore();
   const { movies, reviews, isLoading: isMovieLoading, fetchMovies } = useMovieStore();
   const [activeTab, setActiveTab] = useState('theatres');
+  const [pendingAdmins, setPendingAdmins] = useState([]);
+  const [allUsers, setAllUsers] = useState([]);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') {
@@ -44,7 +47,37 @@ const AdminDashboardPage = () => {
     fetchTheatres();
     fetchBookings();
     fetchMovies();
+    fetchPendingAdmins();
+    fetchAllUsers();
   }, [isAuthenticated, user, navigate, fetchTheatres, fetchBookings, fetchMovies]);
+
+  const fetchPendingAdmins = async () => {
+    try {
+      const response = await fetch('/api/admin/pending-admins', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      const data = await response.json();
+      setPendingAdmins(data.pendingAdmins || []);
+    } catch (error) {
+      console.error('Failed to fetch pending admins:', error);
+    }
+  };
+
+  const fetchAllUsers = async () => {
+    try {
+      const response = await fetch('/api/admin/users', {
+        headers: {
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        }
+      });
+      const data = await response.json();
+      setAllUsers(data.users || []);
+    } catch (error) {
+      console.error('Failed to fetch users:', error);
+    }
+  };
 
   const isLoading = isTheatreLoading || isBookingLoading || isMovieLoading;
   const pendingTheatres = theatres.filter(t => !t.approved);
@@ -61,7 +94,7 @@ const AdminDashboardPage = () => {
     <div className="container-custom py-12">
       <h1 className="mb-8 text-3xl font-bold">Admin Dashboard</h1>
 
-      <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-10 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-5">
         <Card>
           <CardContent className="p-6">
             <div className="flex items-center justify-between">
@@ -100,11 +133,13 @@ const AdminDashboardPage = () => {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Total Users</p>
-                <h3 className="mt-1 text-3xl font-semibold">3</h3>
+                <h3 className="mt-1 text-3xl font-semibold">{allUsers.length}</h3>
               </div>
               <Users className="h-8 w-8 text-primary-600 dark:text-primary-400" />
             </div>
-            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">1 admin, 1 owner, 1 user</p>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              {allUsers.filter(u => u.role === 'admin').length} admins, {allUsers.filter(u => u.role === 'owner').length} owners, {allUsers.filter(u => u.role === 'user').length} users
+            </p>
           </CardContent>
         </Card>
 
@@ -123,10 +158,37 @@ const AdminDashboardPage = () => {
             </p>
           </CardContent>
         </Card>
+
+        <Card>
+          <CardContent className="p-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="text-sm font-medium text-slate-500 dark:text-slate-400">Pending Admins</p>
+                <h3 className="mt-1 text-3xl font-semibold">{pendingAdmins.length}</h3>
+              </div>
+              <UserCheck className="h-8 w-8 text-primary-600 dark:text-primary-400" />
+            </div>
+            <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
+              Awaiting approval
+            </p>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="mb-6 border-b border-slate-200 dark:border-slate-800">
         <nav className="flex space-x-4">
+          <button
+            onClick={() => setActiveTab('admins')}
+            className={`inline-flex items-center border-b-2 px-1 py-4 text-sm font-medium ${
+              activeTab === 'admins'
+                ? 'border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400'
+                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-300'
+            }`}
+          >
+            <UserCheck className="mr-2 h-4 w-4" />
+            Admin Approvals ({pendingAdmins.length})
+          </button>
+
           <button
             onClick={() => setActiveTab('theatres')}
             className={`inline-flex items-center border-b-2 px-1 py-4 text-sm font-medium ${
@@ -136,7 +198,7 @@ const AdminDashboardPage = () => {
             }`}
           >
             <Building2 className="mr-2 h-4 w-4" />
-            Theatre Approvals
+            Theatre Approvals ({pendingTheatres.length})
           </button>
 
           <button
@@ -166,6 +228,27 @@ const AdminDashboardPage = () => {
       </div>
 
       <div>
+        {activeTab === 'admins' && (
+          <>
+            <h2 className="mb-6 text-2xl font-semibold">Admin Approval Requests</h2>
+            {pendingAdmins.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-slate-600 dark:text-slate-400">No pending admin requests.</p>
+              </Card>
+            ) : (
+              <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                {pendingAdmins.map(admin => (
+                  <AdminApprovalCard 
+                    key={admin._id} 
+                    admin={admin} 
+                    onUpdate={fetchPendingAdmins}
+                  />
+                ))}
+              </div>
+            )}
+          </>
+        )}
+
         {activeTab === 'theatres' && (
           <>
             <h2 className="mb-6 text-2xl font-semibold">Theatres Pending Approval</h2>

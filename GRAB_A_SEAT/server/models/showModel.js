@@ -15,17 +15,35 @@ const showSchema = new mongoose.Schema({
     type: Number,
     required: true,
   },
-  showTime: {
-    type: Date,
+  date: {
+    type: String, // Store as YYYY-MM-DD format
     required: true,
+  },
+  startTime: {
+    type: String, // Store as HH:MM format
+    required: true,
+  },
+  price: {
+    regular: {
+      type: Number,
+      required: true,
+    },
+    premium: {
+      type: Number,
+      required: true,
+    }
   },
   totalSeats: {
     type: Number,
     required: true,
+    default: 120
   },
   availableSeats: {
     type: Number,
     required: true,
+    default: function() {
+      return this.totalSeats;
+    }
   }
 }, {
   timestamps: true

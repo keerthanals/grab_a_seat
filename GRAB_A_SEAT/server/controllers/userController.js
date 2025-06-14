@@ -35,9 +35,9 @@ const register = async (req, res) => {
             email,
             password: hashedPassword,
             profilePic,
-            role: req.body.role || 'user'  // 👈 Accept role if passed
+            role: role,
+            status: role === 'admin' ? 'pending' : 'active'
         });
-
 
         const savedUser = await newUser.save();
 
@@ -45,7 +45,16 @@ const register = async (req, res) => {
         const userData = savedUser.toObject();
         delete userData.password;
 
-        // Generate token
+        // For admin role, don't generate token, just return success
+        if (role === 'admin') {
+            return res.status(200).json({ 
+                message: 'Admin registration submitted for approval', 
+                user: userData,
+                requiresApproval: true 
+            });
+        }
+
+        // Generate token for other roles
         const token = createToken(savedUser._id, savedUser.role);
         res.cookie('token', token, {
             httpOnly: true,
@@ -62,7 +71,6 @@ const register = async (req, res) => {
     }
 };
 
-
 const login = async (req, res) => {
     try {
         const { email, password } = req.body || {};
@@ -74,6 +82,18 @@ const login = async (req, res) => {
         const user = await User.findOne({ email });
         if (!user) {
             return res.status(400).json({ message: 'Invalid credentials' });
+        }
+
+        // Check if admin account is pending approval
+        if (user.role === 'admin' && user.status === 'pending') {
+            return res.status(403).json({ message: 'Your admin account is pending approval' });
+        }
+
+        // Check if account is rejected
+        if (user.status === 'rejected') {
+            return res.status(403).json({ 
+                message: `Your account was rejected. Reason: ${user.rejectionReason || 'No reason provided'}` 
+            });
         }
 
         const isMatch = await bcrypt.compare(password, user.password);
@@ -100,8 +120,6 @@ const login = async (req, res) => {
     }
 };
 
-
-
 //profile controller
 const profile = async (req, res) => {
     try {
@@ -118,7 +136,6 @@ const profile = async (req, res) => {
 };
 
 // logout controller
-
 const logout = async (req, res) => {
     try {
         // Clear the cookie
@@ -181,7 +198,6 @@ const updateProfile = async (req, res) => {
 }
 
 //delete profile controller
-
 const deleteUser = async (req, res) => {
     try {
         const userId = req.params.userId;
