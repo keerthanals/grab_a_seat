@@ -13,7 +13,20 @@ const useTheatreStore = create((set, get) => ({
     try {
       const response = await adminAPI.getAllTheatres();
       const theatres = response.theatres || response || [];
-      set({ theatres, isLoading: false });
+      
+      // Extract showtimes from theatres if they exist
+      let allShowtimes = [];
+      theatres.forEach(theatre => {
+        if (theatre.showtimes && Array.isArray(theatre.showtimes)) {
+          const theatreShowtimes = theatre.showtimes.map(showtime => ({
+            ...showtime,
+            theatreId: theatre.id
+          }));
+          allShowtimes = [...allShowtimes, ...theatreShowtimes];
+        }
+      });
+      
+      set({ theatres, showtimes: allShowtimes, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch theatres:', error);
       set({
@@ -40,30 +53,8 @@ const useTheatreStore = create((set, get) => ({
   },
   
   fetchShowtimes: async () => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      // Get all theatres which should include showtimes
-      const response = await adminAPI.getAllTheatres();
-      
-      // Extract showtimes from theatres data
-      let allShowtimes = [];
-      const theatres = response.theatres || response || [];
-      
-      theatres.forEach(theatre => {
-        if (theatre.showtimes && Array.isArray(theatre.showtimes)) {
-          allShowtimes = [...allShowtimes, ...theatre.showtimes];
-        }
-      });
-      
-      set({ showtimes: allShowtimes, isLoading: false });
-    } catch (error) {
-      console.error('Failed to fetch showtimes:', error);
-      set({
-        error: error.message || 'Failed to fetch showtimes',
-        isLoading: false,
-      });
-    }
+    // This is now handled in fetchTheatres
+    return;
   },
   
   approveTheatre: async (id) => {
@@ -72,7 +63,7 @@ const useTheatreStore = create((set, get) => ({
       
       set((state) => ({
         theatres: state.theatres.map((theatre) =>
-          theatre.id === id ? { ...theatre, approved: true } : theatre
+          theatre.id === id ? { ...theatre, approved: true, status: 'approved' } : theatre
         ),
       }));
     } catch (error) {
@@ -101,11 +92,31 @@ const useTheatreStore = create((set, get) => ({
       const response = await ownerAPI.createTheatre(theatreData);
       const newTheatre = response.theatre || response;
       
+      // Transform the theatre data to match frontend expectations
+      const transformedTheatre = {
+        id: newTheatre._id.toString(),
+        name: newTheatre.name,
+        location: newTheatre.location,
+        ownerId: newTheatre.ownerID,
+        approved: newTheatre.status === 'approved',
+        status: newTheatre.status,
+        screens: Array.from({ length: newTheatre.totalScreens }, (_, i) => ({
+          id: `screen-${i + 1}`,
+          name: `Screen ${i + 1}`,
+          seatLayout: {
+            rows: 10,
+            columns: 12,
+            seatMap: generateSeatMap(10, 12)
+          }
+        })),
+        createdAt: newTheatre.createdAt
+      };
+      
       set((state) => ({
-        theatres: [...state.theatres, newTheatre],
+        theatres: [...state.theatres, transformedTheatre],
       }));
       
-      return newTheatre;
+      return transformedTheatre;
     } catch (error) {
       console.error('Failed to create theatre:', error);
       set({ error: error.message || 'Failed to create theatre' });
@@ -116,13 +127,26 @@ const useTheatreStore = create((set, get) => ({
   addShowtime: async (showtimeData) => {
     try {
       const response = await ownerAPI.createShow(showtimeData);
-      const newShowtime = response.showtime || response;
+      const newShowtime = response.show || response;
+      
+      // Transform showtime data to match frontend expectations
+      const transformedShowtime = {
+        id: newShowtime._id.toString(),
+        movieId: newShowtime.movieID,
+        theatreId: newShowtime.theatreID,
+        screenId: `screen-${newShowtime.screenNumber}`,
+        date: newShowtime.date,
+        startTime: newShowtime.startTime,
+        price: newShowtime.price,
+        totalSeats: newShowtime.totalSeats,
+        availableSeats: newShowtime.availableSeats
+      };
       
       set((state) => ({
-        showtimes: [...state.showtimes, newShowtime],
+        showtimes: [...state.showtimes, transformedShowtime],
       }));
       
-      return newShowtime;
+      return transformedShowtime;
     } catch (error) {
       console.error('Failed to create showtime:', error);
       set({ error: error.message || 'Failed to create showtime' });
@@ -132,5 +156,19 @@ const useTheatreStore = create((set, get) => ({
   
   clearError: () => set({ error: null }),
 }));
+
+// Helper function to generate seat map
+const generateSeatMap = (rows, columns) => {
+  const seatMap = {};
+  for (let row = 0; row < rows; row++) {
+    const rowLabel = String.fromCharCode(65 + row); // A, B, C, etc.
+    for (let col = 1; col <= columns; col++) {
+      const seatId = `${rowLabel}${col}`;
+      // Make some seats premium (last 3 rows)
+      seatMap[seatId] = row >= rows - 3 ? 'premium' : 'regular';
+    }
+  }
+  return seatMap;
+};
 
 export { useTheatreStore };

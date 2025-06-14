@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate } from 'react-router-dom';
 import { Mail, Lock, User, UserCheck } from 'lucide-react';
@@ -17,12 +17,14 @@ const roleOptions = [
 const RegisterForm = () => {
   const { register: registerUser, error, isLoading } = useAuthStore();
   const navigate = useNavigate();
+  const [showApprovalMessage, setShowApprovalMessage] = useState(false);
   
   const {
     register,
     handleSubmit,
     watch,
     formState: { errors },
+    reset,
   } = useForm({
     defaultValues: {
       name: '',
@@ -39,6 +41,12 @@ const RegisterForm = () => {
     try {
       const response = await registerUser(data.name, data.email, data.password, data.role);
       
+      if (response.requiresApproval) {
+        setShowApprovalMessage(true);
+        reset();
+        return;
+      }
+      
       // Redirect based on user role
       if (response.user.role === 'admin') {
         navigate('/admin');
@@ -51,6 +59,39 @@ const RegisterForm = () => {
       console.error('Registration failed:', error);
     }
   };
+
+  if (showApprovalMessage) {
+    return (
+      <Card className="mx-auto max-w-md">
+        <CardHeader>
+          <CardTitle>Registration Submitted</CardTitle>
+          <CardDescription>
+            Your admin registration request has been submitted
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <div className="rounded-md bg-blue-50 p-4 text-center dark:bg-blue-950">
+            <p className="text-sm text-blue-700 dark:text-blue-300">
+              Your admin account request is pending approval from a super admin. 
+              You will be notified once your account is approved.
+            </p>
+          </div>
+        </CardContent>
+        <CardFooter>
+          <Button
+            variant="outline"
+            className="w-full"
+            onClick={() => {
+              setShowApprovalMessage(false);
+              navigate('/login');
+            }}
+          >
+            Back to Login
+          </Button>
+        </CardFooter>
+      </Card>
+    );
+  }
   
   return (
     <Card className="mx-auto max-w-md">

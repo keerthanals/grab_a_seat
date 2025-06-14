@@ -25,7 +25,11 @@ import OwnerDashboardPage from './pages/owner/OwnerDashboardPage';
 
 // Protected route component
 const ProtectedRoute = ({ element, allowedRoles }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -38,7 +42,11 @@ const ProtectedRoute = ({ element, allowedRoles }) => {
 
 // Role-based route component
 const RoleBasedRoute = ({ element, adminElement, ownerElement }) => {
-  const { isAuthenticated, user } = useAuthStore();
+  const { isAuthenticated, user, isInitialized } = useAuthStore();
+
+  if (!isInitialized) {
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
+  }
 
   if (!isAuthenticated) return <Navigate to="/login" replace />;
 
@@ -67,7 +75,7 @@ function App() {
   }, []);
 
   if (!isInitialized) {
-    return <div className="text-center mt-10">Loading...</div>;
+    return <div className="flex h-screen items-center justify-center">Loading...</div>;
   }
 
   return (
@@ -98,7 +106,22 @@ function App() {
               )
             }
           />
-          <Route path="/register" element={<RegisterPage />} />
+          <Route 
+            path="/register" 
+            element={
+              isAuthenticated ? (
+                user?.role === 'admin' ? (
+                  <Navigate to="/admin" replace />
+                ) : user?.role === 'owner' ? (
+                  <Navigate to="/owner" replace />
+                ) : (
+                  <Navigate to="/" replace />
+                )
+              ) : (
+                <RegisterPage />
+              )
+            } 
+          />
 
           {/* Booking routes for user only */}
           <Route

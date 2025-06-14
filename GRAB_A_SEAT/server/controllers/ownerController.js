@@ -4,47 +4,54 @@ const Movie = require('../models/movieModel');
 
 const addMovie = async (req, res) => {
   try {
-    const { title, description, duration, genre, releaseDate, language } = req.body;
+    const { title, description, duration, genre, releaseDate, language, rating, trailerUrl } = req.body;
     const poster = req.file ? req.file.path : null;
 
     if (!title || !description || !duration || !genre || !releaseDate || !language) {
-      return res.status(400).json({ message: 'All fields are required' });
+      return res.status(400).json({ message: 'All required fields must be provided' });
+    }
+
+    // Parse genre if it's a string
+    let genreArray = genre;
+    if (typeof genre === 'string') {
+      genreArray = [genre];
     }
 
     const newMovie = new Movie({
       title,
       description,
-      duration,
-      genre,
+      duration: parseInt(duration),
+      genre: genreArray,
       releaseDate,
       language,
-      poster,
+      rating: rating || 'PG-13',
+      poster: poster || 'https://images.pexels.com/photos/7991579/pexels-photo-7991579.jpeg',
+      trailerUrl: trailerUrl || ''
     });
 
     const savedMovie = await newMovie.save();
     res.status(201).json({ message: 'Movie added successfully', movie: savedMovie });
 
   } catch (error) {
-    console.error(error);
+    console.error('Add movie error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
 
-
 // Create theatre (pending by default)
 const createTheatre = async (req, res) => {
   try {
-    const { name, location, totalScreens } = req.body;
+    const { name, location, screenCount } = req.body;
     const ownerID = req.user._id;
 
-    if (!name || !location || !totalScreens) {
+    if (!name || !location || !screenCount) {
       return res.status(400).json({ message: "All fields are required" });
     }
 
     const newTheatre = new Theatre({
       name,
       location,
-      totalScreens,
+      totalScreens: parseInt(screenCount),
       ownerID,
       status: 'pending',
     });
@@ -63,30 +70,61 @@ const getOwnerTheatres = async (req, res) => {
   try {
     const ownerID = req.user._id;
     const theatres = await Theatre.find({ ownerID });
-    res.status(200).json({ theatres });
+    
+    // Transform the data to match frontend expectations
+    const transformedTheatres = theatres.map(theatre => ({
+      id: theatre._id.toString(),
+      name: theatre.name,
+      location: theatre.location,
+      ownerId: theatre.ownerID.toString(),
+      approved: theatre.status === 'approved',
+      status: theatre.status,
+      rejectionReason: theatre.rejectionReason,
+      screens: Array.from({ length: theatre.totalScreens }, (_, i) => ({
+        id: `screen-${i + 1}`,
+        name: `Screen ${i + 1}`,
+        seatLayout: {
+          rows: 10,
+          columns: 12,
+          seatMap: generateSeatMap(10, 12)
+        }
+      })),
+      createdAt: theatre.createdAt
+    }));
+    
+    res.status(200).json({ theatres: transformedTheatres });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: "Server error" });
   }
 };
 
+// Helper function to generate seat map
+const generateSeatMap = (rows, columns) => {
+  const seatMap = {};
+  for (let row = 0; row < rows; row++) {
+    const rowLabel = String.fromCharCode(65 + row); // A, B, C, etc.
+    for (let col = 1; col <= columns; col++) {
+      const seatId = `${rowLabel}${col}`;
+      // Make some seats premium (last 3 rows)
+      seatMap[seatId] = row >= rows - 3 ? 'premium' : 'regular';
+    }
+  }
+  return seatMap;
+};
+
 const createShow = async (req, res) => {
   try {
     const ownerID = req.user._id;
-    const { theatreID, movieID, screenNumber, showTime, totalSeats } = req.body;
+    const { movieId, theatreId, screenId, date, startTime, priceRegular, pricePremium } = req.body;
 
     // Validate input
-    if (!theatreID || !movieID || !screenNumber || !showTime || !totalSeats) {
+    if (!theatreId || !movieId || !screenId || !date || !startTime || !priceRegular || !pricePremium) {
       return res.status(400).json({ message: 'All fields are required' });
     }
 
-    // Validate showTime format
-    if (isNaN(new Date(showTime).getTime())) {
-      return res.status(400).json({ message: 'Invalid show time format' });
-    }
-
     // Check theatre ownership and approval
-    const theatre = await Theatre.findById(theatreID);
+    const theatre = await Theatre.findById(theatreId);
     if (!theatre) {
       return res.status(404).json({ message: 'Theatre not found' });
     }
@@ -99,14 +137,28 @@ const createShow = async (req, res) => {
       return res.status(403).json({ message: 'Theatre is not approved yet' });
     }
 
-    // Create show with availableSeats = totalSeats
+    // Check if movie exists
+    const movie = await Movie.findById(movieId);
+    if (!movie) {
+      return res.status(404).json({ message: 'Movie not found' });
+    }
+
+    // Extract screen number from screenId (e.g., "screen-1" -> 1)
+    const screenNumber = parseInt(screenId.split('-')[1]);
+
+    // Create show
     const newShow = new Show({
-      theatreID,
-      movieID,
-      screenNumber,
-      showTime,
-      totalSeats,
-      availableSeats: totalSeats,
+      theatreID: theatreId,
+      movieID: movieId,
+      screenNumber: screenNumber,
+      date: date,
+      startTime: startTime,
+      price: {
+        regular: parseFloat(priceRegular),
+        premium: parseFloat(pricePremium)
+      },
+      totalSeats: 120,
+      availableSeats: 120
     });
 
     const savedShow = await newShow.save();
@@ -123,5 +175,4 @@ module.exports = {
   createTheatre,
   getOwnerTheatres, 
   addMovie,
-  
 };

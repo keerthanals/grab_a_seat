@@ -15,17 +15,32 @@ const userSchema = new mongoose.Schema(
       type: String,
       required: [true, 'Password is required'],
       minlength: [6, 'Password must be at least 6 characters long']
-      // maxlength: [20, 'Password must be at most 20 characters long'],
     },
     role: {
       type: String,
-      enum: ['user', 'admin', 'owner'],
+      enum: ['user', 'admin', 'owner', 'super_admin'],
       default: 'user',
+    },
+    status: {
+      type: String,
+      enum: ['active', 'pending', 'rejected'],
+      default: function() {
+        return this.role === 'admin' ? 'pending' : 'active';
+      }
     },
     profilePic: {
       type: String,
       default: null,
     },
+    approvedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: null
+    },
+    rejectionReason: {
+      type: String,
+      default: ''
+    }
   },
   {
     timestamps: true,

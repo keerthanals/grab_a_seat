@@ -5,7 +5,7 @@ const useAuthStore = create((set, get) => ({
   user: null,
   isAuthenticated: false,
   isLoading: false,
-  isInitialized: false, // <- NEW
+  isInitialized: false,
   error: null,
 
   initializeAuth: () => {
@@ -21,7 +21,7 @@ const useAuthStore = create((set, get) => ({
         localStorage.removeItem('userData');
       }
     }
-    set({ isInitialized: true }); // <- FINISH INITIALIZATION
+    set({ isInitialized: true });
   },
   
   login: async (email, password) => {
@@ -56,7 +56,13 @@ const useAuthStore = create((set, get) => ({
     try {
       const response = await authAPI.register({ name, email, password, role });
       
-      // Store token and user data
+      // For admin role, don't auto-login, show pending approval message
+      if (role === 'admin') {
+        set({ isLoading: false });
+        return { ...response, requiresApproval: true };
+      }
+      
+      // Store token and user data for other roles
       localStorage.setItem('authToken', response.token);
       localStorage.setItem('userData', JSON.stringify(response.user));
       

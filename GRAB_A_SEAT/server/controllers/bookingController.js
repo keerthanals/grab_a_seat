@@ -6,18 +6,24 @@ const Theatre = require('../models/theatreModel');
 const createBooking = async (req, res) => {
   try {
     const userID = req.user._id;
-    const { showID, seats, price, totalAmount } = req.body;
+    const { showtimeId, seats, totalAmount } = req.body;
 
-    const show = await Show.findById(showID);
+    const show = await Show.findById(showtimeId);
     if (!show) return res.status(404).json({ message: 'Show not found' });
+
+    // Check if enough seats are available
+    if (show.availableSeats < seats.length) {
+      return res.status(400).json({ message: 'Not enough seats available' });
+    }
 
     const booking = new Booking({
       userID,
-      showID,
+      showID: showtimeId,
       theatreID: show.theatreID,
       seats,
-      price,
-      totalAmount
+      price: totalAmount / seats.length, // Calculate price per seat
+      totalAmount,
+      status: 'confirmed'
     });
 
     await booking.save();
@@ -40,7 +46,23 @@ const getAllBookings = async (req, res) => {
       .populate('userID', 'name email')
       .populate('showID')
       .populate('theatreID');
-    res.status(200).json({ bookings });
+    
+    // Transform bookings to match frontend expectations
+    const transformedBookings = bookings.map(booking => ({
+      id: booking._id.toString(),
+      userId: booking.userID._id.toString(),
+      userName: booking.userID.name,
+      userEmail: booking.userID.email,
+      showtimeId: booking.showID._id.toString(),
+      theatreId: booking.theatreID._id.toString(),
+      seats: booking.seats,
+      totalAmount: booking.totalAmount,
+      status: booking.status || 'confirmed',
+      bookingDate: booking.bookingDate,
+      createdAt: booking.createdAt
+    }));
+    
+    res.status(200).json({ bookings: transformedBookings });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
@@ -57,9 +79,25 @@ const getOwnerBookings = async (req, res) => {
 
     const bookings = await Booking.find({ theatreID: { $in: theatreIDs } })
       .populate('userID', 'name email')
-      .populate('showID');
+      .populate('showID')
+      .populate('theatreID');
 
-    res.status(200).json({ bookings });
+    // Transform bookings to match frontend expectations
+    const transformedBookings = bookings.map(booking => ({
+      id: booking._id.toString(),
+      userId: booking.userID._id.toString(),
+      userName: booking.userID.name,
+      userEmail: booking.userID.email,
+      showtimeId: booking.showID._id.toString(),
+      theatreId: booking.theatreID._id.toString(),
+      seats: booking.seats,
+      totalAmount: booking.totalAmount,
+      status: booking.status || 'confirmed',
+      bookingDate: booking.bookingDate,
+      createdAt: booking.createdAt
+    }));
+
+    res.status(200).json({ bookings: transformedBookings });
   } catch (error) {
     console.error(error);
     res.status(500).json({ message: 'Server error' });
