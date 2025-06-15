@@ -1,18 +1,61 @@
 import React from 'react';
 import { MapPin, Check, X } from 'lucide-react';
-import { useTheatreStore } from '../../stores/theatreStore';
 import { Card, CardContent, CardTitle } from '../ui/Card';
 import Button from '../ui/Button';
 
-const TheatreApprovalCard = ({ theatre }) => {
-  const { approveTheatre, rejectTheatre } = useTheatreStore();
+const TheatreApprovalCard = ({ theatre, onUpdate }) => {
+  const handleApprove = async () => {
+    try {
+      const response = await fetch(`/api/admin/theatres/${theatre.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({ action: 'approve' })
+      });
 
-  const handleApprove = () => {
-    approveTheatre(theatre.id);
+      if (response.ok) {
+        onUpdate();
+      } else {
+        const error = await response.json();
+        console.error('Approval failed:', error);
+        alert('Failed to approve theatre: ' + error.message);
+      }
+    } catch (error) {
+      console.error('Failed to approve theatre:', error);
+      alert('Failed to approve theatre');
+    }
   };
 
-  const handleReject = () => {
-    rejectTheatre(theatre.id);
+  const handleReject = async () => {
+    const rejectionReason = prompt('Please provide a reason for rejection:');
+    if (!rejectionReason) return;
+
+    try {
+      const response = await fetch(`/api/admin/theatres/${theatre.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
+        },
+        body: JSON.stringify({ 
+          action: 'reject',
+          rejectionReason 
+        })
+      });
+
+      if (response.ok) {
+        onUpdate();
+      } else {
+        const error = await response.json();
+        console.error('Rejection failed:', error);
+        alert('Failed to reject theatre: ' + error.message);
+      }
+    } catch (error) {
+      console.error('Failed to reject theatre:', error);
+      alert('Failed to reject theatre');
+    }
   };
 
   return (
@@ -26,6 +69,9 @@ const TheatreApprovalCard = ({ theatre }) => {
       </div>
       <CardContent className="p-6">
         <div className="mb-4">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            <span className="font-medium">Owner:</span> {theatre.ownerName} ({theatre.ownerEmail})
+          </p>
           <p className="text-sm text-slate-700 dark:text-slate-300">
             <span className="font-medium">Screens:</span> {theatre.screens.length}
           </p>

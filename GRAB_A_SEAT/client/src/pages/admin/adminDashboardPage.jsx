@@ -38,6 +38,7 @@ const AdminDashboardPage = () => {
   const [activeTab, setActiveTab] = useState('theatres');
   const [pendingAdmins, setPendingAdmins] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') {
@@ -52,16 +53,25 @@ const AdminDashboardPage = () => {
   }, [isAuthenticated, user, navigate, fetchTheatres, fetchBookings, fetchMovies]);
 
   const fetchPendingAdmins = async () => {
+    setIsLoadingAdmins(true);
     try {
       const response = await fetch('/api/admin/pending-admins', {
         headers: {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
-      const data = await response.json();
-      setPendingAdmins(data.pendingAdmins || []);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Pending admins response:', data);
+        setPendingAdmins(data.pendingAdmins || []);
+      } else {
+        console.error('Failed to fetch pending admins:', response.status);
+      }
     } catch (error) {
       console.error('Failed to fetch pending admins:', error);
+    } finally {
+      setIsLoadingAdmins(false);
     }
   };
 
@@ -72,14 +82,20 @@ const AdminDashboardPage = () => {
           'Authorization': `Bearer ${localStorage.getItem('authToken')}`
         }
       });
-      const data = await response.json();
-      setAllUsers(data.users || []);
+      
+      if (response.ok) {
+        const data = await response.json();
+        console.log('All users response:', data);
+        setAllUsers(data.users || []);
+      } else {
+        console.error('Failed to fetch users:', response.status);
+      }
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
   };
 
-  const isLoading = isTheatreLoading || isBookingLoading || isMovieLoading;
+  const isLoading = isTheatreLoading || isBookingLoading || isMovieLoading || isLoadingAdmins;
   const pendingTheatres = theatres.filter(t => !t.approved);
 
   if (isLoading) {
@@ -259,7 +275,11 @@ const AdminDashboardPage = () => {
             ) : (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {pendingTheatres.map(theatre => (
-                  <TheatreApprovalCard key={theatre.id} theatre={theatre} />
+                  <TheatreApprovalCard 
+                    key={theatre.id} 
+                    theatre={theatre} 
+                    onUpdate={fetchTheatres}
+                  />
                 ))}
               </div>
             )}

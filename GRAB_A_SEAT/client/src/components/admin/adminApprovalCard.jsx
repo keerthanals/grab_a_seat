@@ -17,9 +17,14 @@ const AdminApprovalCard = ({ admin, onUpdate }) => {
 
       if (response.ok) {
         onUpdate();
+      } else {
+        const error = await response.json();
+        console.error('Approval failed:', error);
+        alert('Failed to approve admin: ' + error.message);
       }
     } catch (error) {
       console.error('Failed to approve admin:', error);
+      alert('Failed to approve admin');
     }
   };
 
@@ -42,9 +47,14 @@ const AdminApprovalCard = ({ admin, onUpdate }) => {
 
       if (response.ok) {
         onUpdate();
+      } else {
+        const error = await response.json();
+        console.error('Rejection failed:', error);
+        alert('Failed to reject admin: ' + error.message);
       }
     } catch (error) {
       console.error('Failed to reject admin:', error);
+      alert('Failed to reject admin');
     }
   };
 

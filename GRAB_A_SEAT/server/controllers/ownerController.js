@@ -4,6 +4,9 @@ const Movie = require('../models/movieModel');
 
 const addMovie = async (req, res) => {
   try {
+    console.log('Add movie request body:', req.body);
+    console.log('Add movie file:', req.file);
+    
     const { title, description, duration, genre, releaseDate, language, rating, trailerUrl } = req.body;
     const poster = req.file ? req.file.path : null;
 
@@ -30,17 +33,25 @@ const addMovie = async (req, res) => {
     });
 
     const savedMovie = await newMovie.save();
-    res.status(201).json({ message: 'Movie added successfully', movie: savedMovie });
+    console.log('Movie saved successfully:', savedMovie._id);
+    
+    res.status(201).json({ 
+      message: 'Movie added successfully', 
+      movie: savedMovie 
+    });
 
   } catch (error) {
     console.error('Add movie error:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 
 // Create theatre (pending by default)
 const createTheatre = async (req, res) => {
   try {
+    console.log('Create theatre request body:', req.body);
+    console.log('User creating theatre:', req.user._id);
+    
     const { name, location, screenCount } = req.body;
     const ownerID = req.user._id;
 
@@ -57,11 +68,16 @@ const createTheatre = async (req, res) => {
     });
 
     const savedTheatre = await newTheatre.save();
-    res.status(201).json({ message: "Theatre created, pending admin approval", theatre: savedTheatre });
+    console.log('Theatre saved successfully:', savedTheatre._id);
+    
+    res.status(201).json({ 
+      message: "Theatre created, pending admin approval", 
+      theatre: savedTheatre 
+    });
 
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error('Create theatre error:', error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -69,7 +85,10 @@ const createTheatre = async (req, res) => {
 const getOwnerTheatres = async (req, res) => {
   try {
     const ownerID = req.user._id;
+    console.log('Getting theatres for owner:', ownerID);
+    
     const theatres = await Theatre.find({ ownerID });
+    console.log('Owner theatres found:', theatres.length);
     
     // Transform the data to match frontend expectations
     const transformedTheatres = theatres.map(theatre => ({
@@ -94,8 +113,8 @@ const getOwnerTheatres = async (req, res) => {
     
     res.status(200).json({ theatres: transformedTheatres });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({ message: "Server error" });
+    console.error('Get owner theatres error:', error);
+    res.status(500).json({ message: "Server error", error: error.message });
   }
 };
 
@@ -115,6 +134,9 @@ const generateSeatMap = (rows, columns) => {
 
 const createShow = async (req, res) => {
   try {
+    console.log('Create show request body:', req.body);
+    console.log('User creating show:', req.user._id);
+    
     const ownerID = req.user._id;
     const { movieId, theatreId, screenId, date, startTime, priceRegular, pricePremium } = req.body;
 
@@ -162,11 +184,16 @@ const createShow = async (req, res) => {
     });
 
     const savedShow = await newShow.save();
-    res.status(201).json({ message: 'Show created successfully', show: savedShow });
+    console.log('Show saved successfully:', savedShow._id);
+    
+    res.status(201).json({ 
+      message: 'Show created successfully', 
+      show: savedShow 
+    });
 
   } catch (error) {
     console.error('Error creating show:', error);
-    res.status(500).json({ message: 'Server error' });
+    res.status(500).json({ message: 'Server error', error: error.message });
   }
 };
 

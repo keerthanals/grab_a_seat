@@ -15,10 +15,10 @@ router.get('/pending-admins', authAdmin, adminController.getPendingAdmins);
 // Get all users
 router.get('/users', authAdmin, adminController.getAllUsers);
 
-// Get all theatres (admin)
-router.get('/theatre-list', authAdmin, adminController.getAllTheatres);
+// Get all theatres (admin) - Make this accessible without auth for public viewing
+router.get('/theatre-list', adminController.getAllTheatres);
 
-// Get all movies (admin)
-router.get('/movie-list', authAdmin, adminController.getAllMovies);
+// Get all movies (admin) - Make this accessible without auth for public viewing
+router.get('/movie-list', adminController.getAllMovies);
 
 module.exports = router;

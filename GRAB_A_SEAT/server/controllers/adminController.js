@@ -20,6 +20,7 @@ const approveRejectTheatre = async (req, res) => {
     if (action === 'approve') {
       theatre.status = 'approved';
       theatre.rejectionReason = '';
+      theatre.approvedBy = req.user._id;
     } else {
       theatre.status = 'rejected';
       theatre.rejectionReason = req.body.rejectionReason || 'No reason provided';
@@ -30,7 +31,7 @@ const approveRejectTheatre = async (req, res) => {
     res.status(200).json({ message: `Theatre ${action}d successfully`, theatre });
 
   } catch (error) {
-    console.error(error);
+    console.error('Theatre approval error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -65,10 +66,13 @@ const approveRejectAdmin = async (req, res) => {
 
     await user.save();
 
-    res.status(200).json({ message: `Admin ${action}d successfully`, user: { ...user.toObject(), password: undefined } });
+    res.status(200).json({ 
+      message: `Admin ${action}d successfully`, 
+      user: { ...user.toObject(), password: undefined } 
+    });
 
   } catch (error) {
-    console.error(error);
+    console.error('Admin approval error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -81,9 +85,10 @@ const getPendingAdmins = async (req, res) => {
       status: 'pending' 
     }).select('-password');
     
+    console.log('Pending admins found:', pendingAdmins.length);
     res.status(200).json({ pendingAdmins });
   } catch (error) {
-    console.error(error);
+    console.error('Get pending admins error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -116,9 +121,10 @@ const getAllTheatres = async (req, res) => {
       createdAt: theatre.createdAt
     }));
     
+    console.log('Theatres found:', transformedTheatres.length);
     res.status(200).json({ theatres: transformedTheatres });
   } catch (error) {
-    console.error(error);
+    console.error('Get all theatres error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -157,9 +163,10 @@ const getAllMovies = async (req, res) => {
       createdAt: movie.createdAt
     }));
     
+    console.log('Movies found:', transformedMovies.length);
     res.status(200).json({ movies: transformedMovies });
   } catch (error) {
-    console.error(error);
+    console.error('Get all movies error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
@@ -168,9 +175,10 @@ const getAllMovies = async (req, res) => {
 const getAllUsers = async (req, res) => {
   try {
     const users = await User.find().select('-password');
+    console.log('Users found:', users.length);
     res.status(200).json({ users });
   } catch (error) {
-    console.error(error);
+    console.error('Get all users error:', error);
     res.status(500).json({ message: 'Server error' });
   }
 };
