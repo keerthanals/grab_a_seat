@@ -2,29 +2,20 @@ import React from 'react';
 import { MapPin, Check, X } from 'lucide-react';
 import { Card, CardContent, CardTitle } from '../ui/Card';
 import Button from '../ui/Button';
+import { adminAPI } from '../../services/api';
 
 const TheatreApprovalCard = ({ theatre, onUpdate }) => {
   const handleApprove = async () => {
     try {
-      const response = await fetch(`/api/admin/theatres/${theatre.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({ action: 'approve' })
-      });
-
-      if (response.ok) {
-        onUpdate();
-      } else {
-        const error = await response.json();
-        console.error('Approval failed:', error);
-        alert('Failed to approve theatre: ' + error.message);
-      }
+      console.log('Approving theatre:', theatre.id);
+      
+      const response = await adminAPI.approveRejectTheatre(theatre.id, 'approve');
+      
+      console.log('Theatre approval response:', response);
+      onUpdate();
     } catch (error) {
       console.error('Failed to approve theatre:', error);
-      alert('Failed to approve theatre');
+      alert('Failed to approve theatre: ' + error.message);
     }
   };
 
@@ -33,28 +24,15 @@ const TheatreApprovalCard = ({ theatre, onUpdate }) => {
     if (!rejectionReason) return;
 
     try {
-      const response = await fetch(`/api/admin/theatres/${theatre.id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({ 
-          action: 'reject',
-          rejectionReason 
-        })
-      });
-
-      if (response.ok) {
-        onUpdate();
-      } else {
-        const error = await response.json();
-        console.error('Rejection failed:', error);
-        alert('Failed to reject theatre: ' + error.message);
-      }
+      console.log('Rejecting theatre:', theatre.id, 'Reason:', rejectionReason);
+      
+      const response = await adminAPI.approveRejectTheatre(theatre.id, 'reject', rejectionReason);
+      
+      console.log('Theatre rejection response:', response);
+      onUpdate();
     } catch (error) {
       console.error('Failed to reject theatre:', error);
-      alert('Failed to reject theatre');
+      alert('Failed to reject theatre: ' + error.message);
     }
   };
 

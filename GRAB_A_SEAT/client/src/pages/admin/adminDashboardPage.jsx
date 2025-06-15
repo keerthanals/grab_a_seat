@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTheatreStore } from '../../stores/theatreStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useMovieStore } from '../../stores/movieStore';
+import { adminAPI } from '../../services/api';
 import { Card, CardContent } from '../../components/ui/Card';
 import TheatreApprovalCard from '../../components/admin/TheatreApprovalCard';
 import BookingDetailsTable from '../../components/admin/BookingDetailsTable';
@@ -55,19 +56,12 @@ const AdminDashboardPage = () => {
   const fetchPendingAdmins = async () => {
     setIsLoadingAdmins(true);
     try {
-      const response = await fetch('/api/admin/pending-admins', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
+      console.log('Fetching pending admins...');
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('Pending admins response:', data);
-        setPendingAdmins(data.pendingAdmins || []);
-      } else {
-        console.error('Failed to fetch pending admins:', response.status);
-      }
+      const response = await adminAPI.getPendingAdmins();
+      
+      console.log('Pending admins response:', response);
+      setPendingAdmins(response.pendingAdmins || []);
     } catch (error) {
       console.error('Failed to fetch pending admins:', error);
     } finally {
@@ -77,19 +71,12 @@ const AdminDashboardPage = () => {
 
   const fetchAllUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
+      console.log('Fetching all users...');
       
-      if (response.ok) {
-        const data = await response.json();
-        console.log('All users response:', data);
-        setAllUsers(data.users || []);
-      } else {
-        console.error('Failed to fetch users:', response.status);
-      }
+      const response = await adminAPI.getAllUsers();
+      
+      console.log('All users response:', response);
+      setAllUsers(response.users || []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }

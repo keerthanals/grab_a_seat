@@ -2,29 +2,20 @@ import React from 'react';
 import { User, Check, X, Mail } from 'lucide-react';
 import { Card, CardContent, CardTitle } from '../ui/Card';
 import Button from '../ui/Button';
+import { adminAPI } from '../../services/api';
 
 const AdminApprovalCard = ({ admin, onUpdate }) => {
   const handleApprove = async () => {
     try {
-      const response = await fetch(`/api/admin/users/${admin._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({ action: 'approve' })
-      });
-
-      if (response.ok) {
-        onUpdate();
-      } else {
-        const error = await response.json();
-        console.error('Approval failed:', error);
-        alert('Failed to approve admin: ' + error.message);
-      }
+      console.log('Approving admin:', admin._id);
+      
+      const response = await adminAPI.approveRejectAdmin(admin._id, 'approve');
+      
+      console.log('Approval response:', response);
+      onUpdate();
     } catch (error) {
       console.error('Failed to approve admin:', error);
-      alert('Failed to approve admin');
+      alert('Failed to approve admin: ' + error.message);
     }
   };
 
@@ -33,28 +24,15 @@ const AdminApprovalCard = ({ admin, onUpdate }) => {
     if (!rejectionReason) return;
 
     try {
-      const response = await fetch(`/api/admin/users/${admin._id}`, {
-        method: 'PATCH',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        },
-        body: JSON.stringify({ 
-          action: 'reject',
-          rejectionReason 
-        })
-      });
-
-      if (response.ok) {
-        onUpdate();
-      } else {
-        const error = await response.json();
-        console.error('Rejection failed:', error);
-        alert('Failed to reject admin: ' + error.message);
-      }
+      console.log('Rejecting admin:', admin._id, 'Reason:', rejectionReason);
+      
+      const response = await adminAPI.approveRejectAdmin(admin._id, 'reject', rejectionReason);
+      
+      console.log('Rejection response:', response);
+      onUpdate();
     } catch (error) {
       console.error('Failed to reject admin:', error);
-      alert('Failed to reject admin');
+      alert('Failed to reject admin: ' + error.message);
     }
   };
 
