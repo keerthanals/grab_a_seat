@@ -7,16 +7,13 @@ router.use('/user', userRouter);  // /api/user
 const adminRouter = require('./adminRoutes');
 router.use('/admin', adminRouter);  // /api/admin
 
-const theatreRouter = require('./ownerRoutes');
-router.use('/theatre', theatreRouter);  // /api/theatre
+const ownerRouter = require('./ownerRoutes');
+router.use('/owner', ownerRouter);  // /api/owner
 
 const bookingRouter = require('./bookingRoutes');
-router.use('/booking', bookingRouter);  // /api/booking
+router.use('/bookings', bookingRouter);  // /api/bookings
 
 const reviewRouter = require('./reviewRoutes');
-router.use('/review', reviewRouter);  // /api/review
-
-
-
+router.use('/reviews', reviewRouter);  // /api/reviews
 
 module.exports = router;

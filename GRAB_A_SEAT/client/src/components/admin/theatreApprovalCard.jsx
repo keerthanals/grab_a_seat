@@ -1,18 +1,39 @@
 import React from 'react';
 import { MapPin, Check, X } from 'lucide-react';
-import { useTheatreStore } from '../../stores/theatreStore';
 import { Card, CardContent, CardTitle } from '../ui/Card';
 import Button from '../ui/Button';
+import { adminAPI } from '../../services/api';
 
-const TheatreApprovalCard = ({ theatre }) => {
-  const { approveTheatre, rejectTheatre } = useTheatreStore();
-
-  const handleApprove = () => {
-    approveTheatre(theatre.id);
+const TheatreApprovalCard = ({ theatre, onUpdate }) => {
+  const handleApprove = async () => {
+    try {
+      console.log('Approving theatre:', theatre.id);
+      
+      const response = await adminAPI.approveRejectTheatre(theatre.id, 'approve');
+      
+      console.log('Theatre approval response:', response);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to approve theatre:', error);
+      alert('Failed to approve theatre: ' + error.message);
+    }
   };
 
-  const handleReject = () => {
-    rejectTheatre(theatre.id);
+  const handleReject = async () => {
+    const rejectionReason = prompt('Please provide a reason for rejection:');
+    if (!rejectionReason) return;
+
+    try {
+      console.log('Rejecting theatre:', theatre.id, 'Reason:', rejectionReason);
+      
+      const response = await adminAPI.approveRejectTheatre(theatre.id, 'reject', rejectionReason);
+      
+      console.log('Theatre rejection response:', response);
+      onUpdate();
+    } catch (error) {
+      console.error('Failed to reject theatre:', error);
+      alert('Failed to reject theatre: ' + error.message);
+    }
   };
 
   return (
@@ -26,6 +47,9 @@ const TheatreApprovalCard = ({ theatre }) => {
       </div>
       <CardContent className="p-6">
         <div className="mb-4">
+          <p className="text-sm text-slate-700 dark:text-slate-300">
+            <span className="font-medium">Owner:</span> {theatre.ownerName} ({theatre.ownerEmail})
+          </p>
           <p className="text-sm text-slate-700 dark:text-slate-300">
             <span className="font-medium">Screens:</span> {theatre.screens.length}
           </p>

@@ -5,6 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTheatreStore } from '../../stores/theatreStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useMovieStore } from '../../stores/movieStore';
+import { adminAPI } from '../../services/api';
 import { Card, CardContent } from '../../components/ui/Card';
 import TheatreApprovalCard from '../../components/admin/TheatreApprovalCard';
 import BookingDetailsTable from '../../components/admin/BookingDetailsTable';
@@ -38,6 +39,7 @@ const AdminDashboardPage = () => {
   const [activeTab, setActiveTab] = useState('theatres');
   const [pendingAdmins, setPendingAdmins] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') {
@@ -52,34 +54,35 @@ const AdminDashboardPage = () => {
   }, [isAuthenticated, user, navigate, fetchTheatres, fetchBookings, fetchMovies]);
 
   const fetchPendingAdmins = async () => {
+    setIsLoadingAdmins(true);
     try {
-      const response = await fetch('/api/admin/pending-admins', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      const data = await response.json();
-      setPendingAdmins(data.pendingAdmins || []);
+      console.log('Fetching pending admins...');
+      
+      const response = await adminAPI.getPendingAdmins();
+      
+      console.log('Pending admins response:', response);
+      setPendingAdmins(response.pendingAdmins || []);
     } catch (error) {
       console.error('Failed to fetch pending admins:', error);
+    } finally {
+      setIsLoadingAdmins(false);
     }
   };
 
   const fetchAllUsers = async () => {
     try {
-      const response = await fetch('/api/admin/users', {
-        headers: {
-          'Authorization': `Bearer ${localStorage.getItem('authToken')}`
-        }
-      });
-      const data = await response.json();
-      setAllUsers(data.users || []);
+      console.log('Fetching all users...');
+      
+      const response = await adminAPI.getAllUsers();
+      
+      console.log('All users response:', response);
+      setAllUsers(response.users || []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
     }
   };
 
-  const isLoading = isTheatreLoading || isBookingLoading || isMovieLoading;
+  const isLoading = isTheatreLoading || isBookingLoading || isMovieLoading || isLoadingAdmins;
   const pendingTheatres = theatres.filter(t => !t.approved);
 
   if (isLoading) {
@@ -259,7 +262,11 @@ const AdminDashboardPage = () => {
             ) : (
               <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
                 {pendingTheatres.map(theatre => (
-                  <TheatreApprovalCard key={theatre.id} theatre={theatre} />
+                  <TheatreApprovalCard 
+                    key={theatre.id} 
+                    theatre={theatre} 
+                    onUpdate={fetchTheatres}
+                  />
                 ))}
               </div>
             )}

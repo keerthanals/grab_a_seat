@@ -1,6 +1,5 @@
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3001/api';
 
-
 // Helper function to get auth token
 const getAuthToken = () => {
   return localStorage.getItem('authToken');
@@ -19,10 +18,16 @@ const makeAuthenticatedRequest = async (url, options = {}) => {
     ...options,
   };
 
+  console.log('Making request to:', `${API_BASE_URL}${url}`);
+  console.log('Request config:', config);
+
   const response = await fetch(`${API_BASE_URL}${url}`, config);
+  
+  console.log('Response status:', response.status);
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Network error' }));
+    console.error('Request failed:', error);
     throw new Error(error.message || 'Request failed');
   }
   
@@ -43,10 +48,15 @@ const makeFormDataRequest = async (url, formData, options = {}) => {
     ...options,
   };
 
+  console.log('Making FormData request to:', `${API_BASE_URL}${url}`);
+
   const response = await fetch(`${API_BASE_URL}${url}`, config);
+  
+  console.log('FormData response status:', response.status);
   
   if (!response.ok) {
     const error = await response.json().catch(() => ({ message: 'Network error' }));
+    console.error('FormData request failed:', error);
     throw new Error(error.message || 'Request failed');
   }
   
@@ -87,11 +97,22 @@ export const authAPI = {
 
 // Admin API functions
 export const adminAPI = {
-  approveRejectTheatre: async (theatreId, action) => {
+  approveRejectTheatre: async (theatreId, action, rejectionReason = '') => {
     return makeAuthenticatedRequest(`/admin/theatres/${theatreId}`, {
       method: 'PATCH',
-      body: JSON.stringify({ action }), // 'approve' or 'reject'
+      body: JSON.stringify({ action, rejectionReason }),
     });
+  },
+
+  approveRejectAdmin: async (userId, action, rejectionReason = '') => {
+    return makeAuthenticatedRequest(`/admin/users/${userId}`, {
+      method: 'PATCH',
+      body: JSON.stringify({ action, rejectionReason }),
+    });
+  },
+
+  getPendingAdmins: async () => {
+    return makeAuthenticatedRequest('/admin/pending-admins');
   },
 
   getAllTheatres: async () => {
@@ -104,6 +125,10 @@ export const adminAPI = {
 
   getAllBookings: async () => {
     return makeAuthenticatedRequest('/bookings/all-bookings');
+  },
+
+  getAllUsers: async () => {
+    return makeAuthenticatedRequest('/admin/users');
   },
 
   deleteUser: async (userId) => {
