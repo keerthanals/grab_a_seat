@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { Calendar, Clock, Film } from 'lucide-react';
 import { ownerAPI } from '../../services/api';
@@ -30,10 +30,12 @@ const ratingOptions = [
 ];
 
 const MovieForm = () => {
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  
   const {
     register,
     handleSubmit,
-    formState: { errors, isSubmitting },
+    formState: { errors },
     reset,
   } = useForm({
     defaultValues: {
@@ -43,30 +45,55 @@ const MovieForm = () => {
       releaseDate: new Date().toISOString().split('T')[0],
       genre: 'drama',
       rating: 'PG-13',
+      language: 'English',
       trailerUrl: '',
     },
   });
   
   const onSubmit = async (data) => {
     try {
+      setIsSubmitting(true);
+      
       // Create FormData for file upload
       const formData = new FormData();
       
       // Add all form fields to FormData
-      Object.keys(data).forEach(key => {
-        if (key === 'poster' && data[key][0]) {
-          formData.append('poster', data[key][0]);
-        } else if (key !== 'poster') {
-          formData.append(key, data[key]);
-        }
+      formData.append('title', data.title);
+      formData.append('description', data.description);
+      formData.append('duration', data.duration.toString());
+      formData.append('releaseDate', data.releaseDate);
+      formData.append('genre', data.genre);
+      formData.append('rating', data.rating);
+      formData.append('language', data.language);
+      formData.append('trailerUrl', data.trailerUrl || '');
+      
+      // Add poster file if selected
+      if (data.poster && data.poster[0]) {
+        formData.append('poster', data.poster[0]);
+      }
+      
+      console.log('Submitting movie data:', {
+        title: data.title,
+        description: data.description,
+        duration: data.duration,
+        releaseDate: data.releaseDate,
+        genre: data.genre,
+        rating: data.rating,
+        language: data.language,
+        trailerUrl: data.trailerUrl,
+        hasPoster: !!(data.poster && data.poster[0])
       });
       
-      await ownerAPI.addMovie(formData);
+      const response = await ownerAPI.addMovie(formData);
+      console.log('Movie added successfully:', response);
       
       toast.success('Movie added successfully!');
       reset();
     } catch (error) {
+      console.error('Failed to add movie:', error);
       toast.error(error.message || 'Failed to add movie');
+    } finally {
+      setIsSubmitting(false);
     }
   };
   
@@ -74,6 +101,9 @@ const MovieForm = () => {
     <Card>
       <CardHeader>
         <CardTitle>Add New Movie</CardTitle>
+        <p className="text-sm text-slate-600 dark:text-slate-400">
+          Add a movie to your theatre's catalog. You can create showtimes after adding the movie.
+        </p>
       </CardHeader>
       <CardContent>
         <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
@@ -85,6 +115,10 @@ const MovieForm = () => {
               error={errors.title?.message}
               {...register('title', {
                 required: 'Movie title is required',
+                minLength: {
+                  value: 2,
+                  message: 'Title must be at least 2 characters',
+                },
               })}
               placeholder="Inception"
             />
@@ -132,6 +166,7 @@ const MovieForm = () => {
                   value: 300,
                   message: 'Maximum duration is 300 minutes',
                 },
+                valueAsNumber: true,
               })}
               min={30}
               max={300}
@@ -149,7 +184,7 @@ const MovieForm = () => {
             />
           </div>
           
-          <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+          <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
             <Select
               id="genre"
               label="Genre"
@@ -168,6 +203,16 @@ const MovieForm = () => {
               {...register('rating', {
                 required: 'Rating is required',
               })}
+            />
+            
+            <Input
+              id="language"
+              label="Language"
+              error={errors.language?.message}
+              {...register('language', {
+                required: 'Language is required',
+              })}
+              placeholder="English"
             />
           </div>
           
@@ -195,7 +240,7 @@ const MovieForm = () => {
           <div>
             <Input
               id="trailerUrl"
-              label="Trailer URL (YouTube)"
+              label="Trailer URL (YouTube) - Optional"
               error={errors.trailerUrl?.message}
               {...register('trailerUrl', {
                 pattern: {
@@ -212,8 +257,9 @@ const MovieForm = () => {
               type="submit"
               className="w-full"
               isLoading={isSubmitting}
+              disabled={isSubmitting}
             >
-              Add Movie
+              {isSubmitting ? 'Adding Movie...' : 'Add Movie'}
             </Button>
           </div>
         </form>

@@ -28,10 +28,23 @@ const OwnerDashboardPage = () => {
       return;
     }
     
-    fetchOwnerTheatres();
-    fetchShowtimes();
-    fetchOwnerBookings();
-    fetchMovies();
+    console.log('Owner dashboard loading data for user:', user._id);
+    
+    // Fetch all necessary data
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchOwnerTheatres(),
+          fetchShowtimes(),
+          fetchOwnerBookings(),
+          fetchMovies()
+        ]);
+      } catch (error) {
+        console.error('Error loading owner dashboard data:', error);
+      }
+    };
+    
+    loadData();
   }, [isAuthenticated, user, navigate, fetchOwnerTheatres, fetchShowtimes, fetchOwnerBookings, fetchMovies]);
   
   const isLoading = isTheatreLoading || isBookingLoading;
@@ -45,7 +58,14 @@ const OwnerDashboardPage = () => {
   }
   
   // Filter theatres owned by current user
-  const userTheatres = theatres.filter((theatre) => theatre.ownerId === user?.id);
+  const userTheatres = theatres.filter((theatre) => {
+    console.log('Checking theatre:', theatre.name, 'ownerId:', theatre.ownerId, 'user._id:', user?._id);
+    return theatre.ownerId === user?._id;
+  });
+  
+  console.log('User theatres found:', userTheatres.length);
+  console.log('All theatres:', theatres.length);
+  console.log('User ID:', user?._id);
   
   // Filter bookings for the user's theatres
   const userTheatreIds = userTheatres.map((theatre) => theatre.id);
@@ -56,6 +76,9 @@ const OwnerDashboardPage = () => {
   const theatreBookings = bookings.filter((booking) => 
     theatreShowtimeIds.includes(booking.showtimeId)
   );
+  
+  const approvedTheatres = userTheatres.filter(t => t.approved);
+  const pendingTheatres = userTheatres.filter(t => !t.approved);
   
   return (
     <div className="container-custom py-12">
@@ -78,11 +101,11 @@ const OwnerDashboardPage = () => {
             </div>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               <span className="text-success-500">
-                {userTheatres.filter((t) => t.approved).length} approved
+                {approvedTheatres.length} approved
               </span>
               {" • "}
               <span className="text-accent-500">
-                {userTheatres.filter((t) => !t.approved).length} pending
+                {pendingTheatres.length} pending
               </span>
             </p>
           </CardContent>
@@ -158,7 +181,7 @@ const OwnerDashboardPage = () => {
             }`}
           >
             <Building2 className="mr-2 h-4 w-4" />
-            My Theatres
+            My Theatres ({userTheatres.length})
           </button>
           <button
             onClick={() => setActiveTab('movies')}
@@ -191,7 +214,7 @@ const OwnerDashboardPage = () => {
             }`}
           >
             <TicketCheck className="mr-2 h-4 w-4" />
-            Bookings
+            Bookings ({theatreBookings.length})
           </button>
         </nav>
       </div>
@@ -201,26 +224,64 @@ const OwnerDashboardPage = () => {
         {/* My Theatres */}
         {activeTab === 'theatres' && (
           <div className="space-y-8">
-            <div>
-              <h2 className="mb-6 text-2xl font-semibold">My Theatres</h2>
-              
-              {userTheatres.length === 0 ? (
-                <Card className="mb-8 p-8 text-center">
-                  <p className="mb-4 text-slate-600 dark:text-slate-400">
-                    You don't have any theatres yet.
-                  </p>
-                </Card>
-              ) : (
+            {/* Approved Theatres */}
+            {approvedTheatres.length > 0 && (
+              <div>
+                <h2 className="mb-6 text-2xl font-semibold text-success-600 dark:text-success-400">
+                  Approved Theatres ({approvedTheatres.length})
+                </h2>
                 <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
-                  {userTheatres.map((theatre) => (
-                    <TheatreCard key={theatre.id} theatre={theatre} />
+                  {approvedTheatres.map((theatre) => (
+                    <div key={theatre.id} className="relative">
+                      <TheatreCard theatre={theatre} />
+                      <div className="absolute -top-2 -right-2">
+                        <span className="inline-flex items-center rounded-full bg-success-100 px-2.5 py-0.5 text-xs font-medium text-success-800 dark:bg-success-900 dark:text-success-300">
+                          ✓ Approved
+                        </span>
+                      </div>
+                    </div>
                   ))}
                 </div>
-              )}
-            </div>
+              </div>
+            )}
+
+            {/* Pending Theatres */}
+            {pendingTheatres.length > 0 && (
+              <div>
+                <h2 className="mb-6 text-2xl font-semibold text-accent-600 dark:text-accent-400">
+                  Pending Approval ({pendingTheatres.length})
+                </h2>
+                <div className="mb-8 grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-3">
+                  {pendingTheatres.map((theatre) => (
+                    <div key={theatre.id} className="relative opacity-75">
+                      <TheatreCard theatre={theatre} />
+                      <div className="absolute -top-2 -right-2">
+                        <span className="inline-flex items-center rounded-full bg-accent-100 px-2.5 py-0.5 text-xs font-medium text-accent-800 dark:bg-accent-900 dark:text-accent-300">
+                          ⏳ Pending
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* No Theatres Message */}
+            {userTheatres.length === 0 && (
+              <Card className="mb-8 p-8 text-center">
+                <div className="mb-4">
+                  <Building2 className="mx-auto h-16 w-16 text-slate-400" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">No Theatres Yet</h3>
+                <p className="mb-4 text-slate-600 dark:text-slate-400">
+                  You don't have any theatres yet. Create your first theatre to get started.
+                </p>
+              </Card>
+            )}
             
+            {/* Create Theatre Form */}
             <div>
-              <h2 className="mb-6 text-2xl font-semibold">Add New Theatre</h2>
+              <h2 className="mb-6 text-2xl font-semibold">Create New Theatre</h2>
               <TheatreForm />
             </div>
           </div>
@@ -238,16 +299,7 @@ const OwnerDashboardPage = () => {
         {activeTab === 'showtimes' && (
           <div>
             <h2 className="mb-6 text-2xl font-semibold">Add New Showtimes</h2>
-            
-            {userTheatres.filter((t) => t.approved).length === 0 ? (
-              <Card className="p-8 text-center">
-                <p className="mb-4 text-slate-600 dark:text-slate-400">
-                  You need at least one approved theatre to add showtimes.
-                </p>
-              </Card>
-            ) : (
-              <ShowtimeForm />
-            )}
+            <ShowtimeForm />
           </div>
         )}
         
@@ -258,8 +310,12 @@ const OwnerDashboardPage = () => {
             
             {theatreBookings.length === 0 ? (
               <Card className="p-8 text-center">
+                <div className="mb-4">
+                  <TicketCheck className="mx-auto h-16 w-16 text-slate-400" />
+                </div>
+                <h3 className="mb-2 text-xl font-semibold">No Bookings Yet</h3>
                 <p className="text-slate-600 dark:text-slate-400">
-                  No bookings found for your theatres.
+                  No bookings found for your theatres. Once customers start booking tickets, they'll appear here.
                 </p>
               </Card>
             ) : (
