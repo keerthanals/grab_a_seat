@@ -111,6 +111,14 @@ const getOwnerTheatres = async (req, res) => {
       createdAt: theatre.createdAt
     }));
     
+    console.log('Transformed theatres:', transformedTheatres.map(t => ({
+      id: t.id,
+      name: t.name,
+      ownerId: t.ownerId,
+      approved: t.approved,
+      status: t.status
+    })));
+    
     res.status(200).json({ theatres: transformedTheatres });
   } catch (error) {
     console.error('Get owner theatres error:', error);

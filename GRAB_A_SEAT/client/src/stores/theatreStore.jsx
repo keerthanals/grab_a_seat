@@ -40,8 +40,14 @@ const useTheatreStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
+      console.log('Fetching owner theatres...');
       const response = await ownerAPI.getOwnerTheatres();
+      console.log('Owner theatres response:', response);
+      
       const theatres = response.theatres || response || [];
+      console.log('Owner theatres found:', theatres.length);
+      console.log('Approved theatres:', theatres.filter(t => t.approved).length);
+      
       set({ theatres, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch owner theatres:', error);
@@ -89,7 +95,10 @@ const useTheatreStore = create((set, get) => ({
   
   addTheatre: async (theatreData) => {
     try {
+      console.log('Adding theatre with data:', theatreData);
       const response = await ownerAPI.createTheatre(theatreData);
+      console.log('Theatre creation response:', response);
+      
       const newTheatre = response.theatre || response;
       
       // Transform the theatre data to match frontend expectations
@@ -112,6 +121,8 @@ const useTheatreStore = create((set, get) => ({
         createdAt: newTheatre.createdAt
       };
       
+      console.log('Transformed theatre:', transformedTheatre);
+      
       set((state) => ({
         theatres: [...state.theatres, transformedTheatre],
       }));
@@ -126,7 +137,10 @@ const useTheatreStore = create((set, get) => ({
   
   addShowtime: async (showtimeData) => {
     try {
+      console.log('Adding showtime with data:', showtimeData);
       const response = await ownerAPI.createShow(showtimeData);
+      console.log('Showtime creation response:', response);
+      
       const newShowtime = response.show || response;
       
       // Transform showtime data to match frontend expectations
@@ -141,6 +155,8 @@ const useTheatreStore = create((set, get) => ({
         totalSeats: newShowtime.totalSeats,
         availableSeats: newShowtime.availableSeats
       };
+      
+      console.log('Transformed showtime:', transformedShowtime);
       
       set((state) => ({
         showtimes: [...state.showtimes, transformedShowtime],
