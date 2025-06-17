@@ -14,7 +14,7 @@ const BookingPage = () => {
   const { id } = useParams(); // showtime id
   const navigate = useNavigate();
 
-  const { isAuthenticated } = useAuthStore();
+  const { isAuthenticated, user } = useAuthStore();
 
   const {
     theatres,
@@ -34,7 +34,7 @@ const BookingPage = () => {
     bookings,
     selectedSeats,
     isLoading: isBookingLoading,
-    fetchBookings,
+    fetchUserBookings,
     createBooking
   } = useBookingStore();
 
@@ -45,11 +45,22 @@ const BookingPage = () => {
       navigate('/login');
       return;
     }
-    fetchTheatres();
-    fetchShowtimes();
-    fetchMovies();
-    fetchBookings();
-  }, [isAuthenticated, navigate, fetchTheatres, fetchShowtimes, fetchMovies, fetchBookings]);
+    
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchTheatres(),
+          fetchShowtimes(),
+          fetchMovies(),
+          fetchUserBookings()
+        ]);
+      } catch (error) {
+        console.error('Error loading booking page data:', error);
+      }
+    };
+    
+    loadData();
+  }, [isAuthenticated, navigate, fetchTheatres, fetchShowtimes, fetchMovies, fetchUserBookings]);
 
   const isLoading = isTheatreLoading || isMovieLoading || isBookingLoading;
 
@@ -99,15 +110,15 @@ const BookingPage = () => {
     try {
       setIsSubmitting(true);
 
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      createBooking({
-        userId: '3', // Hardcoded for demo
+      const bookingData = {
+        userId: user._id || user.id,
         showtimeId: showtime.id,
         seats: selectedSeats,
         totalAmount: calculateTotal()
-      });
+      };
+
+      console.log('Creating booking with data:', bookingData);
+      await createBooking(bookingData);
 
       navigate('/booking/confirmation', {
         state: {
