@@ -6,15 +6,12 @@ import Loader from '../ui/Loader';
 import Input from '../ui/Input';
 
 const MovieList = () => {
-  const { movies, isLoading, fetchMovies } = useMovieStore();
+  const { movies, isLoading, fetchMovies, error } = useMovieStore();
   const [searchTerm, setSearchTerm] = useState('');
-  const [filteredMovies, setFilteredMovies] = useState(movies);
+  const [filteredMovies, setFilteredMovies] = useState([]);
 
   useEffect(() => {
-    fetchMovies();
-  }, [fetchMovies]);
-
-  useEffect(() => {
+    console.log('MovieList: Movies changed', movies.length);
     if (searchTerm.trim() === '') {
       setFilteredMovies(movies);
     } else {
@@ -35,6 +32,20 @@ const MovieList = () => {
     );
   }
 
+  if (error) {
+    return (
+      <div className="text-center">
+        <p className="text-red-500 mb-4">Error: {error}</p>
+        <button 
+          onClick={() => fetchMovies()} 
+          className="px-4 py-2 bg-primary-600 text-white rounded hover:bg-primary-700"
+        >
+          Retry
+        </button>
+      </div>
+    );
+  }
+
   return (
     <div>
       <div className="mb-6">
@@ -50,7 +61,7 @@ const MovieList = () => {
       {filteredMovies.length === 0 ? (
         <div className="mt-10 text-center">
           <p className="text-lg text-slate-600 dark:text-slate-400">
-            No movies found matching "{searchTerm}"
+            {searchTerm ? `No movies found matching "${searchTerm}"` : 'No movies available'}
           </p>
         </div>
       ) : (

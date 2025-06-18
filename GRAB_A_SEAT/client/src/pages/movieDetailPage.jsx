@@ -17,18 +17,46 @@ const MovieDetailPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
 
-  const { movies, reviews, isLoading, fetchMovies } = useMovieStore();
+  const { movies, reviews, isLoading, fetchMovies, fetchMovieReviews } = useMovieStore();
   const { theatres, showtimes, fetchTheatres, fetchShowtimes } = useTheatreStore();
   const { user, isAuthenticated } = useAuthStore();
 
   const [activeTab, setActiveTab] = useState('showtimes');
   const [showReviewForm, setShowReviewForm] = useState(false);
+  const [reviewsLoading, setReviewsLoading] = useState(false);
 
   useEffect(() => {
-    fetchMovies();
-    fetchTheatres();
-    fetchShowtimes();
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchMovies(),
+          fetchTheatres(),
+          fetchShowtimes()
+        ]);
+      } catch (error) {
+        console.error('Error loading movie detail data:', error);
+      }
+    };
+
+    loadData();
   }, [fetchMovies, fetchTheatres, fetchShowtimes]);
+
+  // Fetch reviews when movie is loaded and reviews tab is active
+  useEffect(() => {
+    if (id && activeTab === 'reviews') {
+      const loadReviews = async () => {
+        setReviewsLoading(true);
+        try {
+          await fetchMovieReviews(id);
+        } catch (error) {
+          console.error('Error loading reviews:', error);
+        } finally {
+          setReviewsLoading(false);
+        }
+      };
+      loadReviews();
+    }
+  }, [id, activeTab, fetchMovieReviews]);
 
   if (isLoading) {
     return (
@@ -52,7 +80,7 @@ const MovieDetailPage = () => {
 
   const movieReviews = reviews.filter(review => review.movieId === movie.id);
   const averageRating = calculateAverageRating(movieReviews);
-  const hasUserReviewed = isAuthenticated ? movieReviews.some(r => r.userId === user?.id) : false;
+  const hasUserReviewed = isAuthenticated ? movieReviews.some(r => r.userId === (user?.id || user?._id)) : false;
 
   const formatDuration = minutes => {
     const hours = Math.floor(minutes / 60);
@@ -67,6 +95,12 @@ const MovieDetailPage = () => {
     }
     setShowReviewForm(true);
     setActiveTab('reviews');
+  };
+
+  const handleReviewSuccess = () => {
+    setShowReviewForm(false);
+    // Refresh reviews
+    fetchMovieReviews(id);
   };
 
   return (
@@ -189,11 +223,17 @@ const MovieDetailPage = () => {
                     <Card className="mb-6 border border-slate-200 dark:border-slate-800">
                       <div className="p-6">
                         <h3 className="mb-4 text-lg font-semibold">Write a Review</h3>
-                        <ReviewForm movieId={movie.id} onSuccess={() => setShowReviewForm(false)} />
+                        <ReviewForm movieId={movie.id} onSuccess={handleReviewSuccess} />
                       </div>
                     </Card>
                   )}
-                  <ReviewList movieId={movie.id} />
+                  {reviewsLoading ? (
+                    <div className="flex justify-center py-8">
+                      <Loader size={24} />
+                    </div>
+                  ) : (
+                    <ReviewList movieId={movie.id} />
+                  )}
                 </div>
               )}
             </div>

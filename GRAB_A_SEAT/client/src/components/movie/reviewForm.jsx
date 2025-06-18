@@ -5,12 +5,14 @@ import { useAuthStore } from '../../stores/authStore';
 import { useMovieStore } from '../../stores/movieStore';
 import Button from '../ui/Button';
 import { cn } from '../../utils/helpers';
+import { toast } from 'sonner';
 
 const ReviewForm = ({ movieId, onSuccess }) => {
   const { user } = useAuthStore();
   const { addReview } = useMovieStore();
 
   const [hoveredRating, setHoveredRating] = useState(0);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   const {
     register,
@@ -18,7 +20,7 @@ const ReviewForm = ({ movieId, onSuccess }) => {
     setValue,
     watch,
     reset,
-    formState: { errors, isSubmitting }
+    formState: { errors }
   } = useForm({
     defaultValues: {
       rating: 0,
@@ -28,16 +30,43 @@ const ReviewForm = ({ movieId, onSuccess }) => {
 
   const rating = watch('rating');
 
-  const onSubmit = (data) => {
-    if (!user) return; // optionally you could notify user to login
-    addReview({
-      movieId,
-      userId: user.id,
-      rating: data.rating,
-      comment: data.comment
-    });
-    reset();
-    onSuccess();
+  const onSubmit = async (data) => {
+    if (!user) {
+      toast.error('Please login to submit a review');
+      return;
+    }
+
+    if (!data.rating || data.rating === 0) {
+      toast.error('Please select a rating');
+      return;
+    }
+
+    setIsSubmitting(true);
+    
+    try {
+      console.log('Submitting review:', {
+        movieId,
+        userId: user._id || user.id,
+        rating: data.rating,
+        comment: data.comment
+      });
+
+      await addReview({
+        movieId,
+        userId: user._id || user.id,
+        rating: parseInt(data.rating),
+        comment: data.comment || ''
+      });
+
+      toast.success('Review submitted successfully!');
+      reset();
+      if (onSuccess) onSuccess();
+    } catch (error) {
+      console.error('Review submission error:', error);
+      toast.error(error.message || 'Failed to submit review');
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -45,7 +74,7 @@ const ReviewForm = ({ movieId, onSuccess }) => {
       {/* Rating input */}
       <div>
         <label className="block mb-2 text-sm font-medium" htmlFor="rating">
-          Your Rating
+          Your Rating *
         </label>
         <div className="flex gap-1" role="radiogroup" aria-label="Movie rating">
           {[1, 2, 3, 4, 5].map((value) => (
@@ -71,8 +100,16 @@ const ReviewForm = ({ movieId, onSuccess }) => {
             </button>
           ))}
         </div>
+        <input
+          type="hidden"
+          {...register('rating', {
+            required: 'Please select a rating',
+            min: { value: 1, message: 'Please select a rating' },
+            max: { value: 5, message: 'Rating cannot exceed 5 stars' }
+          })}
+        />
         {errors.rating && (
-          <p className="mt-1 text-xs text-danger-500">{errors.rating.message || 'Please select a rating'}</p>
+          <p className="mt-1 text-xs text-danger-500">{errors.rating.message}</p>
         )}
       </div>
 
@@ -84,7 +121,6 @@ const ReviewForm = ({ movieId, onSuccess }) => {
         <textarea
           id="comment"
           {...register('comment', {
-            required: 'Please write a review',
             minLength: {
               value: 10,
               message: 'Review must be at least 10 characters'
@@ -101,8 +137,13 @@ const ReviewForm = ({ movieId, onSuccess }) => {
 
       {/* Submit button */}
       <div className="flex justify-end">
-        <Button type="submit" variant="primary" isLoading={isSubmitting}>
-          Submit Review
+        <Button 
+          type="submit" 
+          variant="primary" 
+          isLoading={isSubmitting}
+          disabled={isSubmitting}
+        >
+          {isSubmitting ? 'Submitting...' : 'Submit Review'}
         </Button>
       </div>
     </form>

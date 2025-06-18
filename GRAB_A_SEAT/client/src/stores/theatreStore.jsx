@@ -11,7 +11,10 @@ const useTheatreStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
+      console.log('Fetching theatres...');
       const response = await adminAPI.getAllTheatres();
+      console.log('Theatres API response:', response);
+      
       const theatres = response.theatres || response || [];
       
       // Transform theatres to ensure consistent data structure
@@ -95,11 +98,12 @@ const useTheatreStore = create((set, get) => ({
   },
   
   fetchShowtimes: async () => {
-    set({ isLoading: true, error: null });
-    
     try {
+      console.log('Fetching showtimes...');
       // Fetch showtimes from the API
       const response = await ownerAPI.getOwnerShows();
+      console.log('Showtimes API response:', response);
+      
       const showtimes = response.shows || response || [];
       
       // Transform showtimes to match frontend expectations
@@ -116,12 +120,11 @@ const useTheatreStore = create((set, get) => ({
       }));
       
       console.log('Showtimes fetched and transformed:', transformedShowtimes.length);
-      set({ showtimes: transformedShowtimes, isLoading: false });
+      set({ showtimes: transformedShowtimes });
     } catch (error) {
       console.error('Failed to fetch showtimes:', error);
       set({
         error: error.message || 'Failed to fetch showtimes',
-        isLoading: false,
         showtimes: []
       });
     }

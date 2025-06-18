@@ -11,8 +11,11 @@ const useMovieStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
+      console.log('Fetching movies...');
       // Use admin endpoint to get all movies (including owner-added ones)
       const response = await adminAPI.getAllMovies();
+      console.log('Movies API response:', response);
+      
       const movies = response.movies || response || [];
       
       // Transform the data to match frontend expectations
@@ -32,6 +35,7 @@ const useMovieStore = create((set, get) => ({
       
       console.log('Movies fetched and transformed:', transformedMovies.length);
       set({ movies: transformedMovies, isLoading: false });
+      
     } catch (error) {
       console.error('Failed to fetch movies:', error);
       set({
@@ -43,44 +47,50 @@ const useMovieStore = create((set, get) => ({
   },
   
   fetchMovieReviews: async (movieId) => {
-    set({ isLoading: true, error: null });
+    if (!movieId) return;
     
     try {
+      console.log('Fetching reviews for movie:', movieId);
       const response = await reviewAPI.getAllReviewsByAdmin(movieId);
+      console.log('Reviews API response:', response);
+      
       const reviews = response.reviews || response || [];
       
       // Transform reviews to match frontend expectations
       const transformedReviews = reviews.map(review => ({
         id: review._id || review.id,
         movieId: review.movieID || review.movieId,
-        userId: review.userID?._id || review.userId,
-        userName: review.userID?.name || review.userName,
+        userId: review.userID?._id || review.userID?.id || review.userId,
+        userName: review.userID?.name || review.userName || 'Anonymous',
         rating: review.rating,
         comment: review.comment,
         date: review.createdAt || review.date,
         createdAt: review.createdAt
       }));
       
-      set({ reviews: transformedReviews, isLoading: false });
+      console.log('Reviews transformed:', transformedReviews.length);
+      set({ reviews: transformedReviews });
+      
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
-      set({
-        error: error.message || 'Failed to fetch reviews',
-        isLoading: false,
-      });
+      set({ error: error.message || 'Failed to fetch reviews' });
     }
   },
   
   addReview: async (reviewData) => {
     try {
+      console.log('Adding review with data:', reviewData);
       const response = await reviewAPI.addReview(reviewData);
+      console.log('Add review response:', response);
+      
       const newReview = response.review || response;
       
       // Transform the new review
       const transformedReview = {
         id: newReview._id || newReview.id,
         movieId: newReview.movieID || reviewData.movieId,
-        userId: newReview.userID || reviewData.userId,
+        userId: newReview.userID?._id || newReview.userID || reviewData.userId,
+        userName: newReview.userID?.name || 'You',
         rating: newReview.rating,
         comment: newReview.comment,
         date: newReview.createdAt || new Date().toISOString(),
@@ -91,6 +101,7 @@ const useMovieStore = create((set, get) => ({
         reviews: [...state.reviews, transformedReview],
       }));
       
+      console.log('Review added successfully:', transformedReview);
       return transformedReview;
     } catch (error) {
       console.error('Failed to add review:', error);
@@ -110,64 +121,6 @@ const useMovieStore = create((set, get) => ({
       console.error('Failed to delete review:', error);
       set({ error: error.message || 'Failed to delete review' });
       throw error;
-    }
-  },
-  
-  // Owner-specific function to get reviews for movies in their theatres
-  fetchOwnerMovieReviews: async (movieId) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      const response = await reviewAPI.getMovieReviewsByOwner(movieId);
-      const reviews = response.reviews || response || [];
-      
-      const transformedReviews = reviews.map(review => ({
-        id: review._id || review.id,
-        movieId: review.movieID || review.movieId,
-        userId: review.userID?._id || review.userId,
-        userName: review.userID?.name || review.userName,
-        rating: review.rating,
-        comment: review.comment,
-        date: review.createdAt || review.date,
-        createdAt: review.createdAt
-      }));
-      
-      set({ reviews: transformedReviews, isLoading: false });
-    } catch (error) {
-      console.error('Failed to fetch owner reviews:', error);
-      set({
-        error: error.message || 'Failed to fetch reviews',
-        isLoading: false,
-      });
-    }
-  },
-  
-  // Admin-specific function to get all reviews for a movie
-  fetchAdminMovieReviews: async (movieId) => {
-    set({ isLoading: true, error: null });
-    
-    try {
-      const response = await reviewAPI.getAllReviewsByAdmin(movieId);
-      const reviews = response.reviews || response || [];
-      
-      const transformedReviews = reviews.map(review => ({
-        id: review._id || review.id,
-        movieId: review.movieID || review.movieId,
-        userId: review.userID?._id || review.userId,
-        userName: review.userID?.name || review.userName,
-        rating: review.rating,
-        comment: review.comment,
-        date: review.createdAt || review.date,
-        createdAt: review.createdAt
-      }));
-      
-      set({ reviews: transformedReviews, isLoading: false });
-    } catch (error) {
-      console.error('Failed to fetch admin reviews:', error);
-      set({
-        error: error.message || 'Failed to fetch reviews',
-        isLoading: false,
-      });
     }
   },
   

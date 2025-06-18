@@ -20,6 +20,7 @@ const ShowtimeForm = () => {
   const [editingShowtime, setEditingShowtime] = useState(null);
   const [selectedTheatre, setSelectedTheatre] = useState('');
   const [selectedMovie, setSelectedMovie] = useState('');
+  const [isLoading, setIsLoading] = useState(true);
   
   const {
     register,
@@ -43,9 +44,23 @@ const ShowtimeForm = () => {
   const selectedTheatreId = watch('theatreId');
   
   useEffect(() => {
-    fetchMovies();
-    fetchOwnerTheatres();
-    fetchShowtimes();
+    const loadData = async () => {
+      setIsLoading(true);
+      try {
+        await Promise.all([
+          fetchMovies(),
+          fetchOwnerTheatres(),
+          fetchShowtimes()
+        ]);
+      } catch (error) {
+        console.error('Error loading showtime form data:', error);
+        toast.error('Failed to load data');
+      } finally {
+        setIsLoading(false);
+      }
+    };
+    
+    loadData();
   }, [fetchMovies, fetchOwnerTheatres, fetchShowtimes]);
   
   useEffect(() => {
@@ -159,6 +174,14 @@ const ShowtimeForm = () => {
     const theatre = theatres.find(t => t.id === theatreId);
     return theatre ? `${theatre.name} - ${theatre.location}` : 'Unknown Theatre';
   };
+
+  if (isLoading) {
+    return (
+      <div className="flex h-96 items-center justify-center">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary-600"></div>
+      </div>
+    );
+  }
   
   if (ownerTheatres.length === 0) {
     return (
