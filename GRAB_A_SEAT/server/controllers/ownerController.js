@@ -126,6 +126,30 @@ const getOwnerTheatres = async (req, res) => {
   }
 };
 
+// Get all shows owned by logged-in owner
+const getOwnerShows = async (req, res) => {
+  try {
+    const ownerID = req.user._id;
+    console.log('Getting shows for owner:', ownerID);
+    
+    // First get all theatres owned by this owner
+    const theatres = await Theatre.find({ ownerID });
+    const theatreIDs = theatres.map(t => t._id);
+    
+    // Then get all shows for these theatres
+    const shows = await Show.find({ theatreID: { $in: theatreIDs } })
+      .populate('movieID', 'title')
+      .populate('theatreID', 'name location');
+    
+    console.log('Owner shows found:', shows.length);
+    
+    res.status(200).json({ shows });
+  } catch (error) {
+    console.error('Get owner shows error:', error);
+    res.status(500).json({ message: "Server error", error: error.message });
+  }
+};
+
 // Helper function to generate seat map
 const generateSeatMap = (rows, columns) => {
   const seatMap = {};
@@ -205,8 +229,88 @@ const createShow = async (req, res) => {
   }
 };
 
+const updateShow = async (req, res) => {
+  try {
+    const showId = req.params.id;
+    const ownerID = req.user._id;
+    const { movieId, theatreId, screenId, date, startTime, priceRegular, pricePremium } = req.body;
+
+    console.log('Update show request:', { showId, body: req.body });
+
+    // Find the show
+    const show = await Show.findById(showId).populate('theatreID');
+    if (!show) {
+      return res.status(404).json({ message: 'Show not found' });
+    }
+
+    // Check ownership
+    if (show.theatreID.ownerID.toString() !== ownerID.toString()) {
+      return res.status(403).json({ message: 'You do not own this show' });
+    }
+
+    // Update show data
+    if (movieId) show.movieID = movieId;
+    if (theatreId) show.theatreID = theatreId;
+    if (screenId) show.screenNumber = parseInt(screenId.split('-')[1]);
+    if (date) show.date = date;
+    if (startTime) show.startTime = startTime;
+    if (priceRegular || pricePremium) {
+      show.price = {
+        regular: priceRegular ? parseFloat(priceRegular) : show.price.regular,
+        premium: pricePremium ? parseFloat(pricePremium) : show.price.premium
+      };
+    }
+
+    const updatedShow = await show.save();
+    console.log('Show updated successfully:', updatedShow._id);
+
+    res.status(200).json({
+      message: 'Show updated successfully',
+      show: updatedShow
+    });
+
+  } catch (error) {
+    console.error('Error updating show:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
+const deleteShow = async (req, res) => {
+  try {
+    const showId = req.params.id;
+    const ownerID = req.user._id;
+
+    console.log('Delete show request:', { showId, ownerID });
+
+    // Find the show
+    const show = await Show.findById(showId).populate('theatreID');
+    if (!show) {
+      return res.status(404).json({ message: 'Show not found' });
+    }
+
+    // Check ownership
+    if (show.theatreID.ownerID.toString() !== ownerID.toString()) {
+      return res.status(403).json({ message: 'You do not own this show' });
+    }
+
+    await Show.findByIdAndDelete(showId);
+    console.log('Show deleted successfully:', showId);
+
+    res.status(200).json({
+      message: 'Show deleted successfully'
+    });
+
+  } catch (error) {
+    console.error('Error deleting show:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 module.exports = {
   createShow,
+  updateShow,
+  deleteShow,
+  getOwnerShows,
   createTheatre,
   getOwnerTheatres, 
   addMovie,

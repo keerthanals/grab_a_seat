@@ -8,6 +8,12 @@ const authOwner = require('../middlewares/authOwner');
 // User creates a booking
 router.post('/', authUser, bookingController.createBooking);
 
+// User gets their own bookings
+router.get('/user-bookings', authUser, bookingController.getUserBookings);
+
+// User cancels their booking
+router.patch('/:id/cancel', authUser, bookingController.cancelBooking);
+
 // Admin gets all bookings
 router.get('/all-bookings', authAdmin, bookingController.getAllBookings);
 

@@ -12,7 +12,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/Card'
 const BookingsPage = () => {
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuthStore();
-  const { bookings, isLoading: isBookingLoading, fetchBookings, cancelBooking } = useBookingStore();
+  const { bookings, isLoading: isBookingLoading, fetchUserBookings, cancelBooking } = useBookingStore();
   const { movies, fetchMovies } = useMovieStore();
   const { showtimes, theatres, fetchShowtimes, fetchTheatres } = useTheatreStore();
 
@@ -21,11 +21,22 @@ const BookingsPage = () => {
       navigate('/login');
       return;
     }
-    fetchBookings();
-    fetchMovies();
-    fetchShowtimes();
-    fetchTheatres();
-  }, [isAuthenticated, navigate, fetchBookings, fetchMovies, fetchShowtimes, fetchTheatres]);
+    
+    const loadData = async () => {
+      try {
+        await Promise.all([
+          fetchUserBookings(),
+          fetchMovies(),
+          fetchShowtimes(),
+          fetchTheatres()
+        ]);
+      } catch (error) {
+        console.error('Error loading bookings page data:', error);
+      }
+    };
+    
+    loadData();
+  }, [isAuthenticated, navigate, fetchUserBookings, fetchMovies, fetchShowtimes, fetchTheatres]);
 
   if (isBookingLoading) {
     return (
@@ -36,7 +47,7 @@ const BookingsPage = () => {
   }
 
   // Filter bookings for the current user
-  const userBookings = bookings.filter(booking => booking.userId === user?.id);
+  const userBookings = bookings.filter(booking => booking.userId === user?.id || booking.userId === user?._id);
 
   const getShowtimeDetails = (showtimeId) => {
     const showtime = showtimes.find(st => st.id === showtimeId);
@@ -53,9 +64,13 @@ const BookingsPage = () => {
     };
   };
 
-  const handleCancelBooking = (bookingId) => {
+  const handleCancelBooking = async (bookingId) => {
     if (confirm('Are you sure you want to cancel this booking?')) {
-      cancelBooking(bookingId);
+      try {
+        await cancelBooking(bookingId);
+      } catch (error) {
+        console.error('Failed to cancel booking:', error);
+      }
     }
   };
 

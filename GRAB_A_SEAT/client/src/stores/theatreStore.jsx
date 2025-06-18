@@ -14,24 +14,37 @@ const useTheatreStore = create((set, get) => ({
       const response = await adminAPI.getAllTheatres();
       const theatres = response.theatres || response || [];
       
-      // Extract showtimes from theatres if they exist
-      let allShowtimes = [];
-      theatres.forEach(theatre => {
-        if (theatre.showtimes && Array.isArray(theatre.showtimes)) {
-          const theatreShowtimes = theatre.showtimes.map(showtime => ({
-            ...showtime,
-            theatreId: theatre.id
-          }));
-          allShowtimes = [...allShowtimes, ...theatreShowtimes];
-        }
-      });
+      // Transform theatres to ensure consistent data structure
+      const transformedTheatres = theatres.map(theatre => ({
+        id: theatre._id || theatre.id,
+        name: theatre.name,
+        location: theatre.location,
+        ownerId: theatre.ownerID || theatre.ownerId,
+        ownerName: theatre.ownerName,
+        ownerEmail: theatre.ownerEmail,
+        approved: theatre.status === 'approved' || theatre.approved,
+        status: theatre.status,
+        rejectionReason: theatre.rejectionReason,
+        screens: theatre.screens || Array.from({ length: theatre.totalScreens || 1 }, (_, i) => ({
+          id: `screen-${i + 1}`,
+          name: `Screen ${i + 1}`,
+          seatLayout: {
+            rows: 10,
+            columns: 12,
+            seatMap: generateSeatMap(10, 12)
+          }
+        })),
+        createdAt: theatre.createdAt
+      }));
       
-      set({ theatres, showtimes: allShowtimes, isLoading: false });
+      console.log('Theatres fetched and transformed:', transformedTheatres.length);
+      set({ theatres: transformedTheatres, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch theatres:', error);
       set({
         error: error.message || 'Failed to fetch theatres',
         isLoading: false,
+        theatres: []
       });
     }
   },
@@ -45,22 +58,73 @@ const useTheatreStore = create((set, get) => ({
       console.log('Owner theatres response:', response);
       
       const theatres = response.theatres || response || [];
-      console.log('Owner theatres found:', theatres.length);
-      console.log('Approved theatres:', theatres.filter(t => t.approved).length);
       
-      set({ theatres, isLoading: false });
+      // Transform theatres to ensure consistent data structure
+      const transformedTheatres = theatres.map(theatre => ({
+        id: theatre._id || theatre.id,
+        name: theatre.name,
+        location: theatre.location,
+        ownerId: theatre.ownerID || theatre.ownerId,
+        approved: theatre.status === 'approved' || theatre.approved,
+        status: theatre.status,
+        rejectionReason: theatre.rejectionReason,
+        screens: theatre.screens || Array.from({ length: theatre.totalScreens || 1 }, (_, i) => ({
+          id: `screen-${i + 1}`,
+          name: `Screen ${i + 1}`,
+          seatLayout: {
+            rows: 10,
+            columns: 12,
+            seatMap: generateSeatMap(10, 12)
+          }
+        })),
+        createdAt: theatre.createdAt
+      }));
+      
+      console.log('Owner theatres found:', transformedTheatres.length);
+      console.log('Approved theatres:', transformedTheatres.filter(t => t.approved).length);
+      
+      set({ theatres: transformedTheatres, isLoading: false });
     } catch (error) {
       console.error('Failed to fetch owner theatres:', error);
       set({
         error: error.message || 'Failed to fetch theatres',
         isLoading: false,
+        theatres: []
       });
     }
   },
   
   fetchShowtimes: async () => {
-    // This is now handled in fetchTheatres
-    return;
+    set({ isLoading: true, error: null });
+    
+    try {
+      // Fetch showtimes from the API
+      const response = await ownerAPI.getOwnerShows();
+      const showtimes = response.shows || response || [];
+      
+      // Transform showtimes to match frontend expectations
+      const transformedShowtimes = showtimes.map(showtime => ({
+        id: showtime._id || showtime.id,
+        movieId: showtime.movieID || showtime.movieId,
+        theatreId: showtime.theatreID || showtime.theatreId,
+        screenId: `screen-${showtime.screenNumber}`,
+        date: showtime.date,
+        startTime: showtime.startTime,
+        price: showtime.price || { regular: 12.99, premium: 18.99 },
+        totalSeats: showtime.totalSeats || 120,
+        availableSeats: showtime.availableSeats || showtime.totalSeats || 120
+      }));
+      
+      console.log('Showtimes fetched and transformed:', transformedShowtimes.length);
+      set({ showtimes: transformedShowtimes, isLoading: false });
+    } catch (error) {
+      console.error('Failed to fetch showtimes:', error);
+      set({
+        error: error.message || 'Failed to fetch showtimes',
+        isLoading: false,
+        showtimes: []
+      });
+    }
   },
   
   approveTheatre: async (id) => {
@@ -166,6 +230,55 @@ const useTheatreStore = create((set, get) => ({
     } catch (error) {
       console.error('Failed to create showtime:', error);
       set({ error: error.message || 'Failed to create showtime' });
+      throw error;
+    }
+  },
+  
+  updateShowtime: async (showtimeId, updateData) => {
+    try {
+      console.log('Updating showtime:', showtimeId, updateData);
+      const response = await ownerAPI.updateShow(showtimeId, updateData);
+      console.log('Showtime update response:', response);
+      
+      const updatedShowtime = response.show || response;
+      
+      // Transform updated showtime data
+      const transformedShowtime = {
+        id: updatedShowtime._id.toString(),
+        movieId: updatedShowtime.movieID,
+        theatreId: updatedShowtime.theatreID,
+        screenId: `screen-${updatedShowtime.screenNumber}`,
+        date: updatedShowtime.date,
+        startTime: updatedShowtime.startTime,
+        price: updatedShowtime.price,
+        totalSeats: updatedShowtime.totalSeats,
+        availableSeats: updatedShowtime.availableSeats
+      };
+      
+      set((state) => ({
+        showtimes: state.showtimes.map(showtime =>
+          showtime.id === showtimeId ? transformedShowtime : showtime
+        ),
+      }));
+      
+      return transformedShowtime;
+    } catch (error) {
+      console.error('Failed to update showtime:', error);
+      set({ error: error.message || 'Failed to update showtime' });
+      throw error;
+    }
+  },
+  
+  deleteShowtime: async (showtimeId) => {
+    try {
+      await ownerAPI.deleteShow(showtimeId);
+      
+      set((state) => ({
+        showtimes: state.showtimes.filter(showtime => showtime.id !== showtimeId),
+      }));
+    } catch (error) {
+      console.error('Failed to delete showtime:', error);
+      set({ error: error.message || 'Failed to delete showtime' });
       throw error;
     }
   },

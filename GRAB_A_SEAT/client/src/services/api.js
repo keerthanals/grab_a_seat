@@ -155,10 +155,27 @@ export const ownerAPI = {
     return makeAuthenticatedRequest('/owner/my-theatres');
   },
 
+  getOwnerShows: async () => {
+    return makeAuthenticatedRequest('/owner/shows');
+  },
+
   createShow: async (showData) => {
     return makeAuthenticatedRequest('/owner/shows', {
       method: 'POST',
       body: JSON.stringify(showData),
+    });
+  },
+
+  updateShow: async (showId, updateData) => {
+    return makeAuthenticatedRequest(`/owner/shows/${showId}`, {
+      method: 'PATCH',
+      body: JSON.stringify(updateData),
+    });
+  },
+
+  deleteShow: async (showId) => {
+    return makeAuthenticatedRequest(`/owner/shows/${showId}`, {
+      method: 'DELETE',
     });
   },
 
@@ -173,6 +190,16 @@ export const bookingAPI = {
     return makeAuthenticatedRequest('/bookings', {
       method: 'POST',
       body: JSON.stringify(bookingData),
+    });
+  },
+
+  getUserBookings: async () => {
+    return makeAuthenticatedRequest('/bookings/user-bookings');
+  },
+
+  cancelBooking: async (bookingId) => {
+    return makeAuthenticatedRequest(`/bookings/${bookingId}/cancel`, {
+      method: 'PATCH',
     });
   },
 };
