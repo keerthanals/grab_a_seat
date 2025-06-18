@@ -32,6 +32,9 @@ const useMovieStore = create((set, get) => ({
       
       console.log('Movies fetched and transformed:', transformedMovies.length);
       set({ movies: transformedMovies, isLoading: false });
+      
+      // Also fetch all reviews for all movies
+      await get().fetchAllReviews();
     } catch (error) {
       console.error('Failed to fetch movies:', error);
       set({
@@ -39,6 +42,16 @@ const useMovieStore = create((set, get) => ({
         isLoading: false,
         movies: [] // Set empty array on error
       });
+    }
+  },
+  
+  fetchAllReviews: async () => {
+    try {
+      // For now, we'll fetch reviews when needed per movie
+      // This is a placeholder for future implementation
+      console.log('Reviews will be fetched per movie');
+    } catch (error) {
+      console.error('Failed to fetch all reviews:', error);
     }
   },
   
@@ -73,6 +86,7 @@ const useMovieStore = create((set, get) => ({
   
   addReview: async (reviewData) => {
     try {
+      console.log('Adding review with data:', reviewData);
       const response = await reviewAPI.addReview(reviewData);
       const newReview = response.review || response;
       
@@ -91,6 +105,7 @@ const useMovieStore = create((set, get) => ({
         reviews: [...state.reviews, transformedReview],
       }));
       
+      console.log('Review added successfully:', transformedReview);
       return transformedReview;
     } catch (error) {
       console.error('Failed to add review:', error);
