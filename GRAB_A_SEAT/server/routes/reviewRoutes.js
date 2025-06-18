@@ -20,8 +20,7 @@ router.get('/owner/:movieID', authOwner, getMovieReviewsByOwner);
 // 3. Admin deletes a review
 router.delete('/admin/:reviewID', authAdmin, deleteReview);
 
-// 4. Admin gets all reviews for a movie
-router.get('/admin/:movieID', authAdmin, getAllReviewsByAdmin);
-
+// 4. Admin gets all reviews for a movie (make this accessible for public viewing)
+router.get('/admin/:movieID', getAllReviewsByAdmin);
 
 module.exports = router;

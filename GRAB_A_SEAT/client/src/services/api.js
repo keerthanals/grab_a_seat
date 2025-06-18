@@ -21,17 +21,22 @@ const makeAuthenticatedRequest = async (url, options = {}) => {
   console.log('Making request to:', `${API_BASE_URL}${url}`);
   console.log('Request config:', config);
 
-  const response = await fetch(`${API_BASE_URL}${url}`, config);
-  
-  console.log('Response status:', response.status);
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Network error' }));
-    console.error('Request failed:', error);
-    throw new Error(error.message || 'Request failed');
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, config);
+    
+    console.log('Response status:', response.status);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }));
+      console.error('Request failed:', error);
+      throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('API request error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 // Helper function for FormData requests (file uploads)
@@ -50,17 +55,22 @@ const makeFormDataRequest = async (url, formData, options = {}) => {
 
   console.log('Making FormData request to:', `${API_BASE_URL}${url}`);
 
-  const response = await fetch(`${API_BASE_URL}${url}`, config);
-  
-  console.log('FormData response status:', response.status);
-  
-  if (!response.ok) {
-    const error = await response.json().catch(() => ({ message: 'Network error' }));
-    console.error('FormData request failed:', error);
-    throw new Error(error.message || 'Request failed');
+  try {
+    const response = await fetch(`${API_BASE_URL}${url}`, config);
+    
+    console.log('FormData response status:', response.status);
+    
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ message: 'Network error' }));
+      console.error('FormData request failed:', error);
+      throw new Error(error.message || `HTTP ${response.status}: ${response.statusText}`);
+    }
+    
+    return response.json();
+  } catch (error) {
+    console.error('FormData API request error:', error);
+    throw error;
   }
-  
-  return response.json();
 };
 
 // Auth API functions
