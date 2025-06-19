@@ -5,7 +5,7 @@ import { useAuthStore } from '../../stores/authStore';
 import { useTheatreStore } from '../../stores/theatreStore';
 import { useBookingStore } from '../../stores/bookingStore';
 import { useMovieStore } from '../../stores/movieStore';
-import { adminAPI } from '../../services/api';
+import { adminAPI, reviewAPI } from '../../services/api';
 import { Card, CardContent } from '../../components/ui/Card';
 import TheatreApprovalCard from '../../components/admin/TheatreApprovalCard';
 import BookingDetailsTable from '../../components/admin/BookingDetailsTable';
@@ -39,7 +39,9 @@ const AdminDashboardPage = () => {
   const [activeTab, setActiveTab] = useState('theatres');
   const [pendingAdmins, setPendingAdmins] = useState([]);
   const [allUsers, setAllUsers] = useState([]);
+  const [allReviews, setAllReviews] = useState([]);
   const [isLoadingAdmins, setIsLoadingAdmins] = useState(false);
+  const [isLoadingReviews, setIsLoadingReviews] = useState(false);
 
   useEffect(() => {
     if (!isAuthenticated || user?.role !== 'admin') {
@@ -52,6 +54,12 @@ const AdminDashboardPage = () => {
     fetchPendingAdmins();
     fetchAllUsers();
   }, [isAuthenticated, user, navigate, fetchTheatres, fetchBookings, fetchMovies]);
+
+  useEffect(() => {
+    if (activeTab === 'reviews') {
+      fetchAllReviews();
+    }
+  }, [activeTab]);
 
   const fetchPendingAdmins = async () => {
     setIsLoadingAdmins(true);
@@ -79,6 +87,43 @@ const AdminDashboardPage = () => {
       setAllUsers(response.users || []);
     } catch (error) {
       console.error('Failed to fetch users:', error);
+    }
+  };
+
+  const fetchAllReviews = async () => {
+    setIsLoadingReviews(true);
+    try {
+      console.log('Fetching all reviews...');
+      
+      // Fetch reviews for all movies
+      const reviewPromises = movies.map(movie => 
+        reviewAPI.getAllReviewsByAdmin(movie.id).catch(error => {
+          console.error(`Failed to fetch reviews for movie ${movie.id}:`, error);
+          return { reviews: [] };
+        })
+      );
+      
+      const reviewResponses = await Promise.all(reviewPromises);
+      const allReviewsData = reviewResponses.flatMap(response => response.reviews || []);
+      
+      console.log('All reviews fetched:', allReviewsData.length);
+      setAllReviews(allReviewsData);
+    } catch (error) {
+      console.error('Failed to fetch all reviews:', error);
+    } finally {
+      setIsLoadingReviews(false);
+    }
+  };
+
+  const handleDeleteReview = async (reviewId) => {
+    if (confirm('Are you sure you want to delete this review?')) {
+      try {
+        await reviewAPI.deleteReviewByAdmin(reviewId);
+        setAllReviews(prev => prev.filter(review => review._id !== reviewId));
+      } catch (error) {
+        console.error('Failed to delete review:', error);
+        alert('Failed to delete review');
+      }
     }
   };
 
@@ -125,7 +170,7 @@ const AdminDashboardPage = () => {
             </div>
             <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">
               <span className="text-success-500">
-                {movies.reduce((sum, m) => sum + reviews.filter(r => r.movieId === m.id).length, 0)} reviews
+                {allReviews.length} reviews
               </span>
             </p>
           </CardContent>
@@ -225,7 +270,7 @@ const AdminDashboardPage = () => {
             }`}
           >
             <Star className="mr-2 h-4 w-4" />
-            Manage Reviews
+            Manage Reviews ({allReviews.length})
           </button>
         </nav>
       </div>
@@ -289,63 +334,67 @@ const AdminDashboardPage = () => {
             <h2 className="mb-6 text-2xl font-semibold">Manage Reviews</h2>
             <Card>
               <CardContent>
-                <div className="overflow-x-auto">
-                  <table className="w-full border-collapse">
-                    <thead>
-                      <tr className="border-b border-slate-200 dark:border-slate-800">
-                        <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Movie</th>
-                        <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Rating</th>
-                        <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Review</th>
-                        <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Date</th>
-                        <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Action</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {reviews.map(review => {
-                        const movie = movies.find(m => m.id === review.movieId);
-                        return (
-                          <tr key={review.id} className="border-b dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900">
-                            <td className="p-3 text-sm">{movie?.title || 'Unknown Movie'}</td>
-                            <td className="p-3 text-sm">
-                              <div className="flex items-center gap-1">
-                                {[...Array(5)].map((_, i) => (
-                                  <Star
-                                    key={i}
-                                    size={16}
-                                    className={i < review.rating ? 'text-accent-500 fill-accent-500' : 'text-slate-300 dark:text-slate-700'}
-                                  />
-                                ))}
-                              </div>
-                            </td>
-                            <td className="p-3 text-sm max-w-xs truncate">{review.comment}</td>
-                            <td className="p-3 text-sm">{new Date(review.date).toLocaleDateString()}</td>
-                            <td className="p-3 text-sm">
-                              <Button
-                                variant="ghost"
-                                size="sm"
-                                className="text-danger-500 hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-950"
-                                onClick={() => {
-                                  if (confirm('Are you sure you want to delete this review?')) {
-                                    // delete review logic
-                                  }
-                                }}
-                              >
-                                Delete
-                              </Button>
+                {isLoadingReviews ? (
+                  <div className="flex justify-center py-8">
+                    <Loader size={24} />
+                  </div>
+                ) : (
+                  <div className="overflow-x-auto">
+                    <table className="w-full border-collapse">
+                      <thead>
+                        <tr className="border-b border-slate-200 dark:border-slate-800">
+                          <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Movie</th>
+                          <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">User</th>
+                          <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Rating</th>
+                          <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Review</th>
+                          <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Date</th>
+                          <th className="p-3 text-left text-sm font-medium text-slate-600 dark:text-slate-400">Action</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        {allReviews.map(review => {
+                          const movie = movies.find(m => m.id === (review.movieID?._id || review.movieID));
+                          return (
+                            <tr key={review._id} className="border-b dark:border-slate-800 hover:bg-slate-50 dark:hover:bg-slate-900">
+                              <td className="p-3 text-sm">{movie?.title || review.movieID?.title || 'Unknown Movie'}</td>
+                              <td className="p-3 text-sm">{review.userID?.name || 'Unknown User'}</td>
+                              <td className="p-3 text-sm">
+                                <div className="flex items-center gap-1">
+                                  {[...Array(5)].map((_, i) => (
+                                    <Star
+                                      key={i}
+                                      size={16}
+                                      className={i < review.rating ? 'text-accent-500 fill-accent-500' : 'text-slate-300 dark:text-slate-700'}
+                                    />
+                                  ))}
+                                </div>
+                              </td>
+                              <td className="p-3 text-sm max-w-xs truncate">{review.comment || 'No comment'}</td>
+                              <td className="p-3 text-sm">{new Date(review.createdAt).toLocaleDateString()}</td>
+                              <td className="p-3 text-sm">
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  className="text-danger-500 hover:bg-danger-50 hover:text-danger-600 dark:hover:bg-danger-950"
+                                  onClick={() => handleDeleteReview(review._id)}
+                                >
+                                  Delete
+                                </Button>
+                              </td>
+                            </tr>
+                          );
+                        })}
+                        {allReviews.length === 0 && (
+                          <tr>
+                            <td colSpan={6} className="p-6 text-center text-slate-600 dark:text-slate-400">
+                              No reviews found.
                             </td>
                           </tr>
-                        );
-                      })}
-                      {reviews.length === 0 && (
-                        <tr>
-                          <td colSpan={5} className="p-6 text-center text-slate-600 dark:text-slate-400">
-                            No reviews found.
-                          </td>
-                        </tr>
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
               </CardContent>
             </Card>
           </>

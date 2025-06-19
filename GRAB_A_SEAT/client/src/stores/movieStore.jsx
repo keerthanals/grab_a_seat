@@ -51,7 +51,7 @@ const useMovieStore = create((set, get) => ({
     
     try {
       console.log('Fetching reviews for movie:', movieId);
-      const response = await reviewAPI.getAllReviewsByAdmin(movieId);
+      const response = await reviewAPI.getMovieReviews(movieId);
       console.log('Reviews API response:', response);
       
       const reviews = response.reviews || response || [];
@@ -59,9 +59,9 @@ const useMovieStore = create((set, get) => ({
       // Transform reviews to match frontend expectations
       const transformedReviews = reviews.map(review => ({
         id: review._id || review.id,
-        movieId: review.movieID || review.movieId,
-        userId: review.userID?._id || review.userID?.id || review.userId,
-        userName: review.userID?.name || review.userName || 'Anonymous',
+        movieId: review.movieId || movieId,
+        userId: review.userId,
+        userName: review.userName || 'Anonymous',
         rating: review.rating,
         comment: review.comment,
         date: review.createdAt || review.date,
@@ -69,7 +69,14 @@ const useMovieStore = create((set, get) => ({
       }));
       
       console.log('Reviews transformed:', transformedReviews.length);
-      set({ reviews: transformedReviews });
+      
+      // Update reviews for this specific movie
+      set((state) => ({
+        reviews: [
+          ...state.reviews.filter(r => r.movieId !== movieId),
+          ...transformedReviews
+        ]
+      }));
       
     } catch (error) {
       console.error('Failed to fetch reviews:', error);
@@ -88,7 +95,7 @@ const useMovieStore = create((set, get) => ({
       // Transform the new review
       const transformedReview = {
         id: newReview._id || newReview.id,
-        movieId: newReview.movieID || reviewData.movieId,
+        movieId: newReview.movieID?._id || newReview.movieID || reviewData.movieId,
         userId: newReview.userID?._id || newReview.userID || reviewData.userId,
         userName: newReview.userID?.name || 'You',
         rating: newReview.rating,

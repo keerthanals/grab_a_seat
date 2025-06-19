@@ -44,7 +44,9 @@ const addReview = async (req, res) => {
     console.log('Review saved successfully:', savedReview._id);
 
     // Populate user data for response
-    const populatedReview = await Review.findById(savedReview._id).populate('userID', 'name email');
+    const populatedReview = await Review.findById(savedReview._id)
+      .populate('userID', 'name email')
+      .populate('movieID', 'title');
 
     res.status(201).json({ 
       message: "Review submitted successfully", 
@@ -85,7 +87,9 @@ const getMovieReviewsByOwner = async (req, res) => {
       return res.status(403).json({ message: "You have no shows for this movie" });
     }
 
-    const reviews = await Review.find({ movieID }).populate('userID', 'name email');
+    const reviews = await Review.find({ movieID })
+      .populate('userID', 'name email')
+      .populate('movieID', 'title');
     
     console.log('Owner reviews found:', reviews.length);
     res.status(200).json({ reviews });
@@ -128,6 +132,40 @@ const getAllReviewsByAdmin = async (req, res) => {
   }
 };
 
+// GET: Get all reviews for a movie (public endpoint)
+const getAllReviews = async (req, res) => {
+  try {
+    const { movieID } = req.params;
+
+    console.log('Get all reviews for movie:', movieID);
+
+    const reviews = await Review.find({ movieID })
+      .populate('userID', 'name email')
+      .populate('movieID', 'title')
+      .sort({ createdAt: -1 });
+
+    console.log('All reviews found:', reviews.length);
+
+    // Transform reviews for frontend
+    const transformedReviews = reviews.map(review => ({
+      id: review._id.toString(),
+      movieId: review.movieID._id.toString(),
+      userId: review.userID._id.toString(),
+      userName: review.userID.name,
+      rating: review.rating,
+      comment: review.comment,
+      date: review.createdAt,
+      createdAt: review.createdAt
+    }));
+
+    res.status(200).json({ reviews: transformedReviews });
+
+  } catch (error) {
+    console.error('Error fetching all reviews:', error);
+    res.status(500).json({ message: 'Server error', error: error.message });
+  }
+};
+
 // DELETE: Admin - delete inappropriate review
 const deleteReview = async (req, res) => {
   try {
@@ -154,5 +192,6 @@ module.exports = {
   addReview,
   getMovieReviewsByOwner,
   deleteReview,
-  getAllReviewsByAdmin
+  getAllReviewsByAdmin,
+  getAllReviews
 };

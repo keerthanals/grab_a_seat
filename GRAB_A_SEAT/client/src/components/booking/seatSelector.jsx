@@ -3,7 +3,7 @@ import { useBookingStore } from '../../stores/bookingStore';
 import { formatCurrency } from '../../utils/helpers';
 import Button from '../ui/Button';
 
-const SeatSelector = ({ showtime, seatLayout, existingBookings }) => {
+const SeatSelector = ({ showtime, seatLayout, existingBookings, onProceedToPayment }) => {
   const { selectedSeats, selectSeat, deselectSeat } = useBookingStore();
   const [bookedSeats, setBookedSeats] = useState([]);
 
@@ -70,9 +70,9 @@ const SeatSelector = ({ showtime, seatLayout, existingBookings }) => {
         cols.push(
           <div
             key={seatId}
-            className={`seat
+            className={`seat cursor-pointer
               ${isSelected ? 'seat-selected' : ''}
-              ${isBooked || seatType === 'unavailable' ? 'seat-unavailable' : ''}
+              ${isBooked || seatType === 'unavailable' ? 'seat-unavailable cursor-not-allowed' : ''}
               ${seatType === 'premium' ? 'border-accent-400 dark:border-accent-700' : ''}
             `}
             onClick={() => handleSeatClick(seatId, seatType)}
@@ -80,6 +80,7 @@ const SeatSelector = ({ showtime, seatLayout, existingBookings }) => {
             aria-label={`Seat ${seatId}`}
             role="button"
             tabIndex={0}
+            title={`Seat ${seatId} - ${seatType} - ${isBooked ? 'Unavailable' : 'Available'}`}
           >
             <span className="sr-only">
               Seat {seatId}, {seatType}, {isBooked ? 'unavailable' : 'available'}
@@ -104,11 +105,11 @@ const SeatSelector = ({ showtime, seatLayout, existingBookings }) => {
         <div className="mx-auto mb-4 flex max-w-xs justify-center gap-6 text-sm">
           <div className="flex items-center gap-2">
             <div className="seat h-5 w-5" />
-            <span>Regular</span>
+            <span>Regular (${showtime.price.regular})</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="seat h-5 w-5 border-accent-400 dark:border-accent-700" />
-            <span>Premium</span>
+            <span>Premium (${showtime.price.premium})</span>
           </div>
           <div className="flex items-center gap-2">
             <div className="seat seat-unavailable h-5 w-5" />
@@ -151,7 +152,11 @@ const SeatSelector = ({ showtime, seatLayout, existingBookings }) => {
             </p>
             <p className="text-lg font-semibold">Total: {formatCurrency(calculateTotal())}</p>
           </div>
-          <Button variant="primary" disabled={selectedSeats.length === 0}>
+          <Button 
+            variant="primary" 
+            disabled={selectedSeats.length === 0}
+            onClick={onProceedToPayment}
+          >
             Proceed to Payment
           </Button>
         </div>

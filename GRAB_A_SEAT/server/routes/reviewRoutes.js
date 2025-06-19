@@ -5,6 +5,7 @@ const {
   getMovieReviewsByOwner,
   deleteReview,
   getAllReviewsByAdmin,
+  getAllReviews,
 } = require('../controllers/reviewController');
 
 const authAdmin = require('../middlewares/authAdmin');
@@ -20,7 +21,10 @@ router.get('/owner/:movieID', authOwner, getMovieReviewsByOwner);
 // 3. Admin deletes a review
 router.delete('/admin/:reviewID', authAdmin, deleteReview);
 
-// 4. Admin gets all reviews for a movie (make this accessible for public viewing)
+// 4. Admin gets all reviews for a movie
 router.get('/admin/:movieID', getAllReviewsByAdmin);
+
+// 5. Public endpoint to get all reviews for a movie
+router.get('/movie/:movieID', getAllReviews);
 
 module.exports = router;
