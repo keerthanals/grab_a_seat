@@ -223,6 +223,10 @@ export const reviewAPI = {
     });
   },
 
+  getMovieReviews: async (movieId) => {
+    return makeAuthenticatedRequest(`/reviews/movie/${movieId}`);
+  },
+
   getMovieReviewsByOwner: async (movieId) => {
     return makeAuthenticatedRequest(`/reviews/owner/${movieId}`);
   },

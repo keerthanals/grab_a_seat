@@ -133,6 +133,7 @@ const BookingPage = () => {
       });
     } catch (error) {
       console.error('Booking failed:', error);
+      alert('Booking failed: ' + error.message);
     } finally {
       setIsSubmitting(false);
     }
@@ -140,7 +141,20 @@ const BookingPage = () => {
 
   return (
     <div className="container-custom py-12">
-      <h1 className="mb-2 text-3xl font-bold">{movie.title}</h1>
+      <div className="mb-4">
+        <Button 
+          variant="ghost" 
+          onClick={() => navigate(-1)}
+          className="mb-4"
+        >
+          ← Back
+        </Button>
+        <h1 className="mb-2 text-3xl font-bold">{movie.title}</h1>
+        <p className="text-slate-600 dark:text-slate-400">
+          {theatre.name} • {screen.name} • {formatDate(showtime.date)} at {formatTime(showtime.startTime)}
+        </p>
+      </div>
+
       <div className="mb-8 grid grid-cols-1 gap-6 lg:grid-cols-3">
         <div className="lg:col-span-2">
           <Card>
@@ -148,10 +162,16 @@ const BookingPage = () => {
               <CardTitle className="text-xl">Select Your Seats</CardTitle>
             </CardHeader>
             <CardContent>
-              <SeatSelector showtime={showtime} seatLayout={screen.seatLayout} existingBookings={bookings} />
+              <SeatSelector 
+                showtime={showtime} 
+                seatLayout={screen.seatLayout} 
+                existingBookings={bookings}
+                onProceedToPayment={handleBookTickets}
+              />
             </CardContent>
           </Card>
         </div>
+        
         <div>
           <Card className="sticky top-24">
             <CardHeader className="bg-slate-50 dark:bg-slate-900">
@@ -166,7 +186,7 @@ const BookingPage = () => {
                     {formatDate(showtime.date)} at {formatTime(showtime.startTime)}
                   </p>
                   <p className="text-sm text-slate-600 dark:text-slate-400">
-                    {theatre.name} &bull; {screen.name}
+                    {theatre.name} • {screen.name}
                   </p>
                 </div>
               </div>
@@ -204,10 +224,10 @@ const BookingPage = () => {
                 variant="primary"
                 size="lg"
                 isLoading={isSubmitting}
-                disabled={selectedSeats.length === 0}
+                disabled={selectedSeats.length === 0 || isSubmitting}
                 onClick={handleBookTickets}
               >
-                Book Tickets
+                {isSubmitting ? 'Processing...' : 'Book Tickets'}
               </Button>
               <p className="mt-2 text-center text-xs text-slate-500 dark:text-slate-400">
                 By proceeding, you agree to our terms of service and privacy policy.
