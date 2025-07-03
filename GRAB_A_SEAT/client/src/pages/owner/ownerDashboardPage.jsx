@@ -7,8 +7,7 @@ import { useBookingStore } from '../../stores/bookingStore';
 import { useMovieStore } from '../../stores/movieStore';
 import { Card, CardContent, CardHeader, CardTitle } from '../../components/ui/Card';
 import TheatreForm from '../../components/owner/TheatreForm';
-import MovieForm from '../../components/owner/MovieForm';
-import ShowtimeForm from '../../components/owner/ShowtimeForm';
+import MovieShowtimeForm from '../../components/owner/MovieShowtimeForm';
 import BookingDetailsTable from '../../components/admin/BookingDetailsTable';
 import Loader from '../../components/ui/Loader';
 import TheatreCard from '../../components/theatre/TheatreCard';
@@ -184,26 +183,15 @@ const OwnerDashboardPage = () => {
             My Theatres ({userTheatres.length})
           </button>
           <button
-            onClick={() => setActiveTab('movies')}
+            onClick={() => setActiveTab('movies-showtimes')}
             className={`inline-flex items-center border-b-2 px-1 py-4 text-sm font-medium ${
-              activeTab === 'movies'
+              activeTab === 'movies-showtimes'
                 ? 'border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400'
                 : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-300'
             }`}
           >
             <Film className="mr-2 h-4 w-4" />
-            Add Movie
-          </button>
-          <button
-            onClick={() => setActiveTab('showtimes')}
-            className={`inline-flex items-center border-b-2 px-1 py-4 text-sm font-medium ${
-              activeTab === 'showtimes'
-                ? 'border-primary-600 text-primary-600 dark:border-primary-500 dark:text-primary-400'
-                : 'border-transparent text-slate-500 hover:border-slate-300 hover:text-slate-700 dark:text-slate-400 dark:hover:border-slate-700 dark:hover:text-slate-300'
-            }`}
-          >
-            <Calendar className="mr-2 h-4 w-4" />
-            Add Showtime
+            Movies & Showtimes
           </button>
           <button
             onClick={() => setActiveTab('bookings')}
@@ -287,19 +275,11 @@ const OwnerDashboardPage = () => {
           </div>
         )}
         
-        {/* Add Movie */}
-        {activeTab === 'movies' && (
+        {/* Movies & Showtimes */}
+        {activeTab === 'movies-showtimes' && (
           <div>
-            <h2 className="mb-6 text-2xl font-semibold">Add New Movie</h2>
-            <MovieForm />
-          </div>
-        )}
-        
-        {/* Add Showtimes */}
-        {activeTab === 'showtimes' && (
-          <div>
-            <h2 className="mb-6 text-2xl font-semibold">Add New Showtimes</h2>
-            <ShowtimeForm />
+            <h2 className="mb-6 text-2xl font-semibold">Manage Movies & Showtimes</h2>
+            <MovieShowtimeForm />
           </div>
         )}
         

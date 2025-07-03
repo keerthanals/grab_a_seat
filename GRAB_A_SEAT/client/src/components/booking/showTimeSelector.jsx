@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { Calendar, Clock } from 'lucide-react';
 import { formatDate, formatTime, formatCurrency } from '../../utils/helpers';
 import { Card, CardContent, CardTitle } from '../ui/Card';
+import Button from '../ui/Button';
 
 const ShowtimeSelector = ({ showtimes, theatres, movieId }) => {
   const navigate = useNavigate();
@@ -49,6 +50,12 @@ const ShowtimeSelector = ({ showtimes, theatres, movieId }) => {
     return theatre ? theatre.name : 'Unknown Theatre';
   };
 
+  // Get theatre location from ID
+  const getTheatreLocation = theatreId => {
+    const theatre = theatres.find(t => t.id === theatreId);
+    return theatre ? theatre.location : 'Unknown Location';
+  };
+
   // Navigate to booking page on showtime click
   const handleBooking = showtimeId => {
     navigate(`/booking/${showtimeId}`);
@@ -88,7 +95,7 @@ const ShowtimeSelector = ({ showtimes, theatres, movieId }) => {
 
       {/* Showtimes List */}
       <div>
-        <h3 className="mb-4 text-lg font-semibold">Showtimes</h3>
+        <h3 className="mb-4 text-lg font-semibold">Available Showtimes</h3>
 
         {Object.keys(showtimesByTheatre).length === 0 ? (
           <p className="py-4 text-center text-slate-600 dark:text-slate-400">
@@ -103,29 +110,51 @@ const ShowtimeSelector = ({ showtimes, theatres, movieId }) => {
               >
                 <div className="bg-slate-50 px-6 py-3 dark:bg-slate-800">
                   <CardTitle className="text-lg">{getTheatreName(theatreId)}</CardTitle>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">
+                    {getTheatreLocation(theatreId)}
+                  </p>
                 </div>
                 <CardContent className="p-0">
                   <div className="p-6">
-                    <div className="flex flex-wrap gap-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-3">
                       {theatreShowtimes
                         .sort((a, b) => a.startTime.localeCompare(b.startTime))
                         .map(showtime => (
-                          <button
+                          <div
                             key={showtime.id}
-                            onClick={() => handleBooking(showtime.id)}
-                            className="group relative flex flex-col items-center rounded-md border border-slate-300 p-3 transition-all hover:border-primary-500 hover:bg-primary-50 dark:border-slate-700 dark:hover:border-primary-600 dark:hover:bg-slate-800"
+                            className="group relative rounded-lg border border-slate-200 p-4 transition-all hover:border-primary-500 hover:bg-primary-50 dark:border-slate-700 dark:hover:border-primary-600 dark:hover:bg-slate-800"
                           >
-                            <div className="flex items-center gap-1">
-                              <Clock size={14} />
-                              <span className="font-medium">{formatTime(showtime.startTime)}</span>
+                            <div className="mb-3">
+                              <div className="flex items-center gap-2 mb-1">
+                                <Clock size={16} className="text-primary-600 dark:text-primary-400" />
+                                <span className="font-semibold text-lg">{formatTime(showtime.startTime)}</span>
+                              </div>
+                              <p className="text-sm text-slate-600 dark:text-slate-400">
+                                Screen {showtime.screenId.replace('screen-', '')}
+                              </p>
                             </div>
-                            <p className="mt-1 text-xs text-slate-600 dark:text-slate-400">
-                              From {formatCurrency(showtime.price.regular)}
-                            </p>
-                            <div className="absolute -right-1 -top-1 hidden h-4 w-4 items-center justify-center rounded-full bg-primary-600 text-[8px] font-bold text-white group-hover:flex">
-                              i
+                            
+                            <div className="mb-4">
+                              <p className="text-sm text-slate-600 dark:text-slate-400 mb-1">
+                                Starting from
+                              </p>
+                              <p className="text-lg font-bold text-primary-600 dark:text-primary-400">
+                                {formatCurrency(showtime.price.regular)}
+                              </p>
+                              <p className="text-xs text-slate-500 dark:text-slate-400">
+                                Premium: {formatCurrency(showtime.price.premium)}
+                              </p>
                             </div>
-                          </button>
+
+                            <Button
+                              variant="primary"
+                              size="sm"
+                              className="w-full"
+                              onClick={() => handleBooking(showtime.id)}
+                            >
+                              Book Now
+                            </Button>
+                          </div>
                         ))}
                     </div>
                   </div>

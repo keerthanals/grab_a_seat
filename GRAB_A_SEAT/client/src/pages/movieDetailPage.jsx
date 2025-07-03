@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { Star, Clock, Calendar } from 'lucide-react';
+import { Star, Clock, Calendar, Play } from 'lucide-react';
 import { motion } from 'framer-motion';
 import { useMovieStore } from '../stores/movieStore';
 import { useTheatreStore } from '../stores/theatreStore';
@@ -82,6 +82,10 @@ const MovieDetailPage = () => {
   const averageRating = calculateAverageRating(movieReviews);
   const hasUserReviewed = isAuthenticated ? movieReviews.some(r => r.userId === (user?.id || user?._id)) : false;
 
+  // Check if movie has any showtimes
+  const movieShowtimes = showtimes.filter(showtime => showtime.movieId === movie.id);
+  const hasShowtimes = movieShowtimes.length > 0;
+
   const formatDuration = minutes => {
     const hours = Math.floor(minutes / 60);
     const mins = minutes % 60;
@@ -103,10 +107,19 @@ const MovieDetailPage = () => {
     fetchMovieReviews(id);
   };
 
+  const handleBookNow = () => {
+    if (!hasShowtimes) {
+      return;
+    }
+    setActiveTab('showtimes');
+    // Scroll to showtimes section
+    document.getElementById('showtimes-section')?.scrollIntoView({ behavior: 'smooth' });
+  };
+
   return (
     <div>
       {/* Hero Section with poster background */}
-      <div className="relative h-[60vh] w-full bg-slate-900">
+      <div className="relative h-[70vh] w-full bg-slate-900">
         <div className="absolute inset-0 bg-gradient-to-t from-slate-950 to-transparent" />
         <div
           className="absolute inset-0 bg-cover bg-center opacity-40"
@@ -122,12 +135,13 @@ const MovieDetailPage = () => {
             <div className="mb-6 h-auto w-64 shrink-0 overflow-hidden rounded-lg shadow-lg md:mb-0">
               <img src={movie.poster} alt={movie.title} className="h-full w-full object-cover" />
             </div>
-            <div>
+            <div className="flex-1">
               <h1 className="mb-2 text-3xl font-bold md:text-4xl">{movie.title}</h1>
               <div className="mb-4 flex flex-wrap items-center gap-3">
                 <div className="flex items-center gap-1">
                   <Star className="h-5 w-5 text-accent-500" fill="currentColor" />
                   <span className="font-medium">{averageRating.toFixed(1)}</span>
+                  <span className="text-slate-300">({movieReviews.length} reviews)</span>
                 </div>
                 <span className="text-slate-300">|</span>
                 <div className="flex items-center gap-1">
@@ -142,7 +156,7 @@ const MovieDetailPage = () => {
                 <span className="text-slate-300">|</span>
                 <span className="rounded bg-slate-700 px-2 py-1 text-xs font-medium">{movie.rating}</span>
               </div>
-              <div className="mb-4 flex flex-wrap gap-2">
+              <div className="mb-6 flex flex-wrap gap-2">
                 {movie.genre.map(genre => (
                   <span
                     key={genre}
@@ -151,6 +165,31 @@ const MovieDetailPage = () => {
                     {genre}
                   </span>
                 ))}
+              </div>
+              <div className="flex flex-wrap gap-3">
+                <Button
+                  variant="accent"
+                  size="lg"
+                  onClick={handleBookNow}
+                  disabled={!hasShowtimes}
+                  className={!hasShowtimes ? 'opacity-50 cursor-not-allowed' : ''}
+                >
+                  {hasShowtimes ? 'Book Tickets' : 'No Showtimes Available'}
+                </Button>
+                {movie.trailerUrl && (
+                  <Button
+                    variant="outline"
+                    size="lg"
+                    leftIcon={<Play size={20} />}
+                    className="border-white text-white hover:bg-white/20"
+                    onClick={() => {
+                      const trailerSection = document.getElementById('trailer-section');
+                      trailerSection?.scrollIntoView({ behavior: 'smooth' });
+                    }}
+                  >
+                    Watch Trailer
+                  </Button>
+                )}
               </div>
             </div>
           </motion.div>
@@ -168,7 +207,7 @@ const MovieDetailPage = () => {
                 <p className="mb-6 leading-relaxed text-slate-700 dark:text-slate-300">{movie.description}</p>
 
                 {movie.trailerUrl && (
-                  <div className="mt-6">
+                  <div className="mt-6" id="trailer-section">
                     <h3 className="mb-3 text-lg font-medium">Trailer</h3>
                     <div className="aspect-video overflow-hidden rounded-lg">
                       <iframe
@@ -197,7 +236,7 @@ const MovieDetailPage = () => {
                   }`}
                 >
                   <Clock size={16} className="mr-2" />
-                  Showtimes
+                  Showtimes {hasShowtimes && `(${movieShowtimes.length})`}
                 </button>
                 <button
                   onClick={() => setActiveTab('reviews')}
@@ -213,7 +252,7 @@ const MovieDetailPage = () => {
               </div>
             </div>
 
-            <div className="mb-8">
+            <div className="mb-8" id="showtimes-section">
               {activeTab === 'showtimes' && (
                 <ShowtimeSelector showtimes={showtimes} theatres={theatres} movieId={movie.id} />
               )}
@@ -255,6 +294,38 @@ const MovieDetailPage = () => {
                   </div>
                 </Card>
               )}
+
+              {/* Movie Info Card */}
+              <Card className="border border-slate-200 dark:border-slate-800">
+                <div className="p-6">
+                  <h3 className="mb-4 text-lg font-semibold">Movie Details</h3>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Language:</span>
+                      <span className="font-medium">{movie.language}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Duration:</span>
+                      <span className="font-medium">{formatDuration(movie.duration)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Rating:</span>
+                      <span className="font-medium">{movie.rating}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">Release Date:</span>
+                      <span className="font-medium">{formatDate(movie.releaseDate)}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-600 dark:text-slate-400">User Rating:</span>
+                      <div className="flex items-center gap-1">
+                        <Star size={14} className="text-accent-500" fill="currentColor" />
+                        <span className="font-medium">{averageRating.toFixed(1)}/5</span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </Card>
 
               <Card className="border border-slate-200 dark:border-slate-800">
                 <div className="p-6">
