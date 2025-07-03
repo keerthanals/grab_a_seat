@@ -1,5 +1,5 @@
 const User = require('../models/userModel');
-const verifyToken = require('./verifyToken'); // import your existing verifyToken middleware
+const verifyToken = require('./verifyToken');
 
 const authOwner = async (req, res, next) => {
   // First, call verifyToken to verify JWT and populate req.user with decoded info
@@ -9,6 +9,13 @@ const authOwner = async (req, res, next) => {
       const user = await User.findById(req.user.id).select('-password');
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Check if user is active (not pending or rejected)
+      if (user.status !== 'active') {
+        return res.status(403).json({ 
+          message: `Account is ${user.status}. ${user.status === 'pending' ? 'Please wait for approval.' : 'Contact support.'}` 
+        });
       }
 
       if (user.role !== 'owner') {

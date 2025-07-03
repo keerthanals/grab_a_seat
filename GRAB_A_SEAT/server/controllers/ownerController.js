@@ -6,6 +6,7 @@ const addMovie = async (req, res) => {
   try {
     console.log('Add movie request body:', req.body);
     console.log('Add movie file:', req.file);
+    console.log('User making request:', { id: req.user._id, role: req.user.role, status: req.user.status });
     
     const { title, description, duration, genre, releaseDate, language, rating, trailerUrl } = req.body;
     const poster = req.file ? req.file.path : null;
@@ -50,13 +51,18 @@ const addMovie = async (req, res) => {
 const createTheatre = async (req, res) => {
   try {
     console.log('Create theatre request body:', req.body);
-    console.log('User creating theatre:', req.user._id);
+    console.log('User creating theatre:', { id: req.user._id, role: req.user.role, status: req.user.status });
     
     const { name, location, screenCount } = req.body;
     const ownerID = req.user._id;
 
     if (!name || !location || !screenCount) {
       return res.status(400).json({ message: "All fields are required" });
+    }
+
+    // Validate that user is an owner
+    if (req.user.role !== 'owner') {
+      return res.status(403).json({ message: "Only theatre owners can create theatres" });
     }
 
     const newTheatre = new Theatre({
@@ -167,7 +173,7 @@ const generateSeatMap = (rows, columns) => {
 const createShow = async (req, res) => {
   try {
     console.log('Create show request body:', req.body);
-    console.log('User creating show:', req.user._id);
+    console.log('User creating show:', { id: req.user._id, role: req.user.role, status: req.user.status });
     
     const ownerID = req.user._id;
     const { movieId, theatreId, screenId, date, startTime, priceRegular, pricePremium } = req.body;

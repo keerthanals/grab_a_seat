@@ -1,5 +1,5 @@
 const User = require('../models/userModel');
-const verifyToken = require('./verifyToken'); // Your existing token verification middleware
+const verifyToken = require('./verifyToken');
 
 const authUser = (req, res, next) => {
   // First verify the token and set req.user with decoded info
@@ -9,6 +9,13 @@ const authUser = (req, res, next) => {
       const user = await User.findById(req.user.id).select('-password');
       if (!user) {
         return res.status(404).json({ message: 'User not found' });
+      }
+
+      // Check if user is active (not pending or rejected)
+      if (user.status !== 'active') {
+        return res.status(403).json({ 
+          message: `Account is ${user.status}. ${user.status === 'pending' ? 'Please wait for approval.' : 'Contact support.'}` 
+        });
       }
 
       req.user = user; // Attach full user object

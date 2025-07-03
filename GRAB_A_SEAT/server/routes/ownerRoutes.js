@@ -1,30 +1,29 @@
 const express = require('express');
 const router = express.Router();
 const authUser = require('../middlewares/authUser');
-const authAdmin = require('../middlewares/authAdmin');
 const authOwner = require('../middlewares/authOwner');
 const ownerController = require('../controllers/ownerController');
 const upload = require('../middlewares/upload');
 
-// Owner creates theatre request
-router.post('/', authUser, authOwner, ownerController.createTheatre);
+// Owner creates theatre request - Use authUser first, then authOwner
+router.post('/', authUser, ownerController.createTheatre);
 
-// Updated for file upload [add movie]
+// Updated for file upload [add movie] - Use authOwner directly since it includes authUser functionality
 router.post('/movies', authOwner, upload.single('poster'), ownerController.addMovie);
 
-// Owner fetches own theatres
-router.get('/my-theatres', authUser, authOwner, ownerController.getOwnerTheatres);
+// Owner fetches own theatres - Use authUser first, then authOwner
+router.get('/my-theatres', authUser, ownerController.getOwnerTheatres);
 
-// Create show (owner only)
-router.post('/shows', authUser, authOwner, ownerController.createShow);
+// Create show (owner only) - Use authUser first, then authOwner
+router.post('/shows', authUser, ownerController.createShow);
 
-// Get owner shows
-router.get('/shows', authUser, authOwner, ownerController.getOwnerShows);
+// Get owner shows - Use authUser first, then authOwner
+router.get('/shows', authUser, ownerController.getOwnerShows);
 
-// Update show (owner only)
-router.patch('/shows/:id', authUser, authOwner, ownerController.updateShow);
+// Update show (owner only) - Use authUser first, then authOwner
+router.patch('/shows/:id', authUser, ownerController.updateShow);
 
-// Delete show (owner only)
-router.delete('/shows/:id', authUser, authOwner, ownerController.deleteShow);
+// Delete show (owner only) - Use authUser first, then authOwner
+router.delete('/shows/:id', authUser, ownerController.deleteShow);
 
 module.exports = router;

@@ -12,11 +12,15 @@ const useAuthStore = create((set, get) => ({
     const token = localStorage.getItem('authToken');
     const userData = localStorage.getItem('userData');
 
+    console.log('Initializing auth:', { hasToken: !!token, hasUserData: !!userData });
+
     if (token && userData) {
       try {
         const user = JSON.parse(userData);
+        console.log('Auth initialized with user:', { id: user._id || user.id, role: user.role, status: user.status });
         set({ user, isAuthenticated: true });
       } catch (error) {
+        console.error('Failed to parse user data:', error);
         localStorage.removeItem('authToken');
         localStorage.removeItem('userData');
       }
@@ -28,7 +32,15 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
+      console.log('Attempting login for:', email);
       const response = await authAPI.login({ email, password });
+      
+      console.log('Login response:', { 
+        hasToken: !!response.token, 
+        userId: response.user._id || response.user.id,
+        userRole: response.user.role,
+        userStatus: response.user.status
+      });
       
       // Store token and user data
       localStorage.setItem('authToken', response.token);
@@ -42,6 +54,7 @@ const useAuthStore = create((set, get) => ({
       
       return response;
     } catch (error) {
+      console.error('Login error:', error);
       set({ 
         error: error.message || 'Login failed', 
         isLoading: false 
@@ -54,7 +67,15 @@ const useAuthStore = create((set, get) => ({
     set({ isLoading: true, error: null });
     
     try {
+      console.log('Attempting registration:', { name, email, role });
       const response = await authAPI.register({ name, email, password, role });
+      
+      console.log('Registration response:', { 
+        requiresApproval: response.requiresApproval,
+        hasToken: !!response.token,
+        userRole: response.user?.role,
+        userStatus: response.user?.status
+      });
       
       // For admin role, don't auto-login, show pending approval message
       if (role === 'admin') {
@@ -74,6 +95,7 @@ const useAuthStore = create((set, get) => ({
       
       return response;
     } catch (error) {
+      console.error('Registration error:', error);
       set({ 
         error: error.message || 'Registration failed', 
         isLoading: false 
@@ -92,6 +114,7 @@ const useAuthStore = create((set, get) => ({
       localStorage.removeItem('authToken');
       localStorage.removeItem('userData');
       set({ user: null, isAuthenticated: false, error: null });
+      console.log('User logged out successfully');
     }
   },
   
